@@ -289,7 +289,7 @@ async function loadFile(f) {
   const sc = Math.min(1, 4000 / Math.max(bmp.width, bmp.height));
   const c = mk(bmp.width * sc, bmp.height * sc), x = c.getContext('2d');
   x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
-  Object.assign(S, { base:c, baseId:Date.now(), bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, job:null, points:[], prepCache:null, mode:'pick' });
+  Object.assign(S, { base:c, baseId:Date.now(), bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, job:null, points:[], prepCache:null, mode:'pick', styleTouched:false, hasStencil:false, style:{...DEFAULT_STYLE} });
   $('#s-bright').value = 0; $('#s-contrast').value = 0; $('#c-auto').checked = false; syncOutputs(); setAspectChip(0);
   dz.hidden = true; $('#editor').hidden = false;
   setTab('adjust');
@@ -438,7 +438,7 @@ function ensurePrepared() {
       const fd = new FormData(); fd.append('photo', blob, 'photo.jpg');
       const d = await api('/api/prepare', null, fd);
       S.job = { id:d.jobId, sig, overlay:d.overlay, ai:d.ai, skinShare:d.skinShare }; S.points = [];
-      if (d.skinShare > 0.4 && !S.styleTouched && !S.hasStencil) { PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); }   // skin-toned subject: start with the portrait preset
+      if (d.skinShare > 0.4 && !S.styleTouched && !S.hasStencil) { PKEYS.forEach((k, i) => S.style[k] = PRESETS.beard[i]); syncStyleUI(); }   // skin-toned subject: start with beard preset (handles stubble by default)
       showAI(null); pollAI(d.jobId);
       say(d.isolated ? 'Subject found.' : 'No single subject stood out, so the whole photo is used.', 'ok');
       return S.job;
@@ -454,7 +454,7 @@ async function pollAI(id) {
     let d; try { d = await (await fetch('/api/ai/' + id)).json(); } catch { continue; }
     if (d.status === 'done') {
       S.job.ai = d.ai;
-      if (d.ai) { if (!S.styleTouched && !S.hasStencil) { Object.assign(S.style, aiDefaults(d.ai)); if (S.job.skinShare > 0.4) PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); } showAI(d.ai); }
+      if (d.ai) { if (!S.styleTouched && !S.hasStencil) { Object.assign(S.style, aiDefaults(d.ai)); if (S.job.skinShare > 0.4) PKEYS.forEach((k, i) => S.style[k] = PRESETS.beard[i]); syncStyleUI(); } showAI(d.ai); }
       return;
     }
     if (d.status === 'none') return;
@@ -516,7 +516,7 @@ function aiDefaults(ai) {
   const st = { ...DEFAULT_STYLE, background:0 };
   if (!ai) return st;
   Object.assign(st, ai.suggest || {});
-  if (/portrait|person|people|face|human/i.test(ai.category || '')) PKEYS.forEach((k, i) => st[k] = PRESETS.portrait[i]);
+  if (/portrait|person|people|face|human/i.test(ai.category || '')) PKEYS.forEach((k, i) => st[k] = PRESETS.beard[i]);
   return st;
 }
 function syncPresetUI() {
