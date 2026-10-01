@@ -1,253 +1,475 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TattooShop — AI Stencil Generator</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0a0a0a; --surface: #141414; --border: #2a2a2a;
-      --ink: #ffffff; --muted: #888; --accent: #e8c84a; --accent2: #c0392b;
-      --radius: 12px;
-    }
-    body { background:var(--bg); color:var(--ink); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
-    header { background:var(--surface); border-bottom:1px solid var(--border); padding:18px 32px; display:flex; align-items:center; gap:16px; }
-    .logo-wrap { display:flex; align-items:center; gap:10px; }
-    .logo-icon { width:38px; height:38px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; }
-    header h1 { font-size:1.45rem; font-weight:700; letter-spacing:-.5px; }
-    header span.sub { margin-left:auto; color:var(--muted); font-size:.82rem; }
-    main { flex:1; max-width:1100px; margin:0 auto; padding:40px 24px; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:32px; }
-    @media (max-width:720px) { main { grid-template-columns:1fr; } }
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:28px; }
-    .card h2 { font-size:1rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:20px; }
-    #drop-zone { border:2px dashed var(--border); border-radius:10px; padding:48px 20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
-    #drop-zone:hover, #drop-zone.dragover { border-color:var(--accent); background:rgba(232,200,74,.04); }
-    #drop-zone .icon { font-size:3rem; opacity:.5; }
-    #drop-zone p { color:var(--muted); font-size:.9rem; line-height:1.6; }
-    #drop-zone strong { color:var(--ink); }
-    #file-input { display:none; }
-    #preview-img { max-width:100%; max-height:280px; border-radius:6px; display:none; object-fit:contain; }
-    .settings-grid { display:grid; gap:16px; }
-    .setting-row label { display:block; font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
-    .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
-    .btn-group button { flex:1; padding:9px 12px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:7px; cursor:pointer; font-size:.85rem; transition:all .15s; white-space:nowrap; }
-    .btn-group button.active, .btn-group button:hover { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.08); }
-    #gen-btn { width:100%; padding:15px; margin-top:20px; background:var(--accent); color:#000; border:none; border-radius:var(--radius); font-size:1rem; font-weight:700; letter-spacing:.04em; cursor:pointer; transition:opacity .2s,transform .1s; text-transform:uppercase; }
-    #gen-btn:hover:not(:disabled) { opacity:.9; }
-    #gen-btn:active:not(:disabled) { transform:scale(.98); }
-    #gen-btn:disabled { opacity:.45; cursor:not-allowed; }
-    .ai-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(232,200,74,.12); border:1px solid rgba(232,200,74,.3); border-radius:20px; padding:4px 12px; font-size:.75rem; color:var(--accent); margin-bottom:16px; }
-    .ai-badge .dot { width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
-    #status-area { min-height:64px; display:flex; flex-direction:column; gap:10px; }
-    .progress-bar-wrap { background:var(--border); border-radius:4px; height:6px; overflow:hidden; display:none; }
-    .progress-bar { height:100%; background:var(--accent); border-radius:4px; transition:width .3s; width:0%; }
-    .status-msg { font-size:.88rem; color:var(--muted); }
-    .status-msg.error { color:#e74c3c; }
-    .status-msg.success { color:#27ae60; }
-    #output-area { display:none; }
-    .stencil-preview { width:100%; border-radius:8px; border:1px solid var(--border); background:#fff; margin-bottom:16px; image-rendering:high-quality; }
-    .dl-buttons { display:flex; gap:12px; }
-    .dl-btn { flex:1; padding:12px; border-radius:8px; text-align:center; text-decoration:none; font-size:.9rem; font-weight:600; transition:opacity .15s; display:flex; align-items:center; justify-content:center; gap:7px; }
-    .dl-btn:hover { opacity:.85; }
-    .dl-btn.png { background:var(--accent); color:#000; }
-    .dl-btn.pdf { background:var(--accent2); color:#fff; }
-    #ai-panel { display:none; margin-top:16px; background:rgba(232,200,74,.05); border:1px solid rgba(232,200,74,.2); border-radius:8px; padding:14px 16px; font-size:.82rem; }
-    #ai-panel h4 { color:var(--accent); margin-bottom:10px; font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; }
-    .ai-tags { display:flex; flex-wrap:wrap; gap:6px; }
-    .ai-tag { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:.75rem; color:var(--muted); }
-    .ai-tag.highlight { color:var(--accent); border-color:rgba(232,200,74,.4); }
-    footer { border-top:1px solid var(--border); padding:14px 24px; text-align:center; color:var(--muted); font-size:.78rem; }
-    footer a { color:var(--accent); text-decoration:none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TattooShop — AI Stencil Generator</title>
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+[hidden] { display:none !important; }
+:root { --bg:#0a0a0a; --surface:#141414; --raised:#1b1b1b; --border:#2a2a2a; --ink:#fff; --muted:#8a8a8a; --accent:#e8c84a; --accent2:#c0392b; --radius:12px; }
+body { background:var(--bg); color:var(--ink); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+header { background:var(--surface); border-bottom:1px solid var(--border); padding:16px 28px; display:flex; align-items:center; gap:16px; }
+.logo-wrap { display:flex; align-items:center; gap:10px; }
+.logo-icon { width:36px; height:36px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+header h1 { font-size:1.35rem; font-weight:700; letter-spacing:-.5px; }
+header .sub { margin-left:auto; color:var(--muted); font-size:.8rem; }
+main { flex:1; width:100%; max-width:1240px; margin:0 auto; padding:28px 20px 40px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+@media (max-width:900px) { main { grid-template-columns:1fr; } header .sub { display:none; } }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; }
+.card > h2 { font-size:.9rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:16px; }
+h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:12px; }
+button { font-family:inherit; }
+#drop-zone { border:2px dashed var(--border); border-radius:10px; padding:56px 20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+#drop-zone:hover, #drop-zone.dragover { border-color:var(--accent); background:rgba(232,200,74,.04); }
+#drop-zone .icon { font-size:3rem; opacity:.5; }
+#drop-zone p { color:var(--muted); font-size:.9rem; line-height:1.6; }
+#drop-zone strong { color:var(--ink); }
+#file-input { display:none; }
+
+.tabs { display:flex; gap:6px; margin-bottom:12px; background:var(--bg); padding:4px; border-radius:9px; border:1px solid var(--border); }
+.tabs button { flex:1; padding:8px 10px; background:none; border:none; color:var(--muted); border-radius:6px; cursor:pointer; font-size:.85rem; font-weight:600; }
+.tabs button.active { background:var(--raised); color:var(--accent); }
+#stage-wrap { display:flex; justify-content:center; background:#050505; border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:12px; }
+#stage { position:relative; touch-action:none; user-select:none; -webkit-user-select:none; background:#fff; }
+#view { position:absolute; inset:0; width:100%; height:100%; display:block; }
+#ov { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+#stage.pick { cursor:crosshair; }
+#cropbox { position:absolute; border:2px solid var(--accent); box-shadow:0 0 0 9999px rgba(0,0,0,.6); cursor:move; touch-action:none; }
+#cropbox i { position:absolute; width:16px; height:16px; background:var(--accent); border:2px solid #000; border-radius:3px; margin:-8px 0 0 -8px; touch-action:none; }
+#cropbox i[data-h=nw]{left:0;top:0;cursor:nwse-resize} #cropbox i[data-h=n]{left:50%;top:0;cursor:ns-resize} #cropbox i[data-h=ne]{left:100%;top:0;cursor:nesw-resize}
+#cropbox i[data-h=e]{left:100%;top:50%;cursor:ew-resize} #cropbox i[data-h=se]{left:100%;top:100%;cursor:nwse-resize} #cropbox i[data-h=s]{left:50%;top:100%;cursor:ns-resize}
+#cropbox i[data-h=sw]{left:0;top:100%;cursor:nesw-resize} #cropbox i[data-h=w]{left:0;top:50%;cursor:ew-resize}
+#marks { position:absolute; inset:0; pointer-events:none; }
+.mk { position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #000; }
+.mk.pos { background:#2ecc71; } .mk.neg { background:#e74c3c; }
+.spin { position:absolute; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; }
+.spin::after { content:''; width:34px; height:34px; border:3px solid rgba(255,255,255,.25); border-top-color:var(--accent); border-radius:50%; animation:rot .8s linear infinite; }
+@keyframes rot { to { transform:rotate(360deg); } }
+
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.row > label { font-size:.74rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; min-width:84px; }
+.chip { padding:7px 11px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:7px; cursor:pointer; font-size:.82rem; white-space:nowrap; transition:all .15s; }
+.chip:hover, .chip.active { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.08); }
+.slider { display:grid; grid-template-columns:1fr auto; gap:2px 10px; margin-bottom:14px; }
+.slider label { font-size:.8rem; color:var(--ink); } .slider output { font-size:.8rem; color:var(--accent); font-variant-numeric:tabular-nums; }
+.slider input { grid-column:1 / 3; width:100%; accent-color:var(--accent); }
+.slider small { grid-column:1 / 3; display:flex; justify-content:space-between; color:var(--muted); font-size:.68rem; }
+input[type=number] { width:84px; padding:7px 9px; background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:7px; font-size:.9rem; }
+.hint { color:var(--muted); font-size:.78rem; line-height:1.55; margin-bottom:12px; }
+.hint b { color:var(--ink); font-weight:600; }
+.check { display:flex; gap:8px; align-items:center; font-size:.84rem; margin-bottom:12px; cursor:pointer; }
+.check input { accent-color:var(--accent); width:16px; height:16px; }
+.ai-line { background:rgba(232,200,74,.06); border:1px solid rgba(232,200,74,.22); border-radius:8px; padding:9px 12px; font-size:.78rem; color:var(--muted); margin-bottom:12px; line-height:1.5; }
+.ai-line b { color:var(--accent); }
+#gen-btn { width:100%; padding:14px; margin-top:6px; background:var(--accent); color:#000; border:none; border-radius:var(--radius); font-size:.98rem; font-weight:700; letter-spacing:.04em; cursor:pointer; text-transform:uppercase; transition:opacity .2s; }
+#gen-btn:hover:not(:disabled) { opacity:.9; } #gen-btn:disabled { opacity:.45; cursor:not-allowed; }
+.link { background:none; border:none; color:var(--muted); font-size:.8rem; cursor:pointer; text-decoration:underline; margin-top:12px; }
+.status { font-size:.86rem; color:var(--muted); min-height:20px; margin-bottom:10px; }
+.status.error { color:#e74c3c; } .status.ok { color:#2ecc71; }
+.bar { height:5px; background:var(--border); border-radius:3px; overflow:hidden; margin-bottom:10px; position:relative; }
+.bar::after { content:''; position:absolute; top:0; bottom:0; width:35%; background:var(--accent); border-radius:3px; animation:slide 1.1s ease-in-out infinite; }
+@keyframes slide { 0% { left:-35%; } 100% { left:100%; } }
+#placeholder { color:var(--muted); font-size:.9rem; line-height:1.7; padding:40px 8px; text-align:center; }
+.preview-wrap { position:relative; background:#fff; border:1px solid var(--border); border-radius:8px; margin-bottom:12px; min-height:120px; }
+#stencil-img { width:100%; display:block; border-radius:8px; }
+#busy { position:absolute; inset:0; background:rgba(255,255,255,.55); display:flex; align-items:center; justify-content:center; border-radius:8px; }
+#busy::after { content:''; width:30px; height:30px; border:3px solid rgba(0,0,0,.15); border-top-color:#000; border-radius:50%; animation:rot .8s linear infinite; }
+.dl-buttons { display:flex; gap:10px; margin-bottom:8px; }
+.dl-btn { flex:1; padding:12px; border-radius:8px; text-align:center; text-decoration:none; font-size:.88rem; font-weight:600; }
+.dl-btn.png { background:var(--accent); color:#000; } .dl-btn.pdf { background:var(--accent2); color:#fff; }
+#info { color:var(--muted); font-size:.76rem; margin-bottom:16px; line-height:1.5; }
+#post { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px; }
+#post .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+#post .top h3 { margin:0; }
+#ai-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+.tag { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:.74rem; color:var(--muted); }
+.tag.hi { color:var(--accent); border-color:rgba(232,200,74,.4); }
+footer { border-top:1px solid var(--border); padding:14px 24px; text-align:center; color:var(--muted); font-size:.78rem; }
+footer a { color:var(--accent); text-decoration:none; }
+</style>
 </head>
 <body>
 <header>
-  <div class="logo-wrap">
-    <div class="logo-icon">&#x270B;</div>
-    <h1>TattooShop <span style="color:var(--accent)">AI</span></h1>
-  </div>
-  <span class="sub">Powered by Ollama &middot; qwen3-vl &middot; OpenCV</span>
+  <div class="logo-wrap"><div class="logo-icon">&#x270B;</div><h1>TattooShop <span style="color:var(--accent)">AI</span></h1></div>
+  <span class="sub">Ollama gemma4 &middot; ISNet &middot; MobileSAM &middot; OpenCV</span>
 </header>
 
 <main>
-  <section class="card">
-    <h2>&#x1F3A8; Upload Photo</h2>
-    <div class="ai-badge"><span class="dot"></span>AI Vision Active &mdash; qwen3-vl:8b</div>
-    <div id="drop-zone">
-      <img id="preview-img" alt="preview">
-      <span class="icon" id="drop-icon">&#x1F4F7;</span>
-      <p id="drop-label"><strong>Drag &amp; drop</strong> your photo here<br>or <strong>click to browse</strong><br><small style="font-size:.78rem;opacity:.6">JPG &middot; PNG &middot; WEBP &middot; up to 20 MB</small></p>
-    </div>
-    <input type="file" id="file-input" accept="image/*">
+<!-- ───────────── 1 · photo ───────────── -->
+<section class="card">
+  <h2>1 &middot; Photo &amp; subject</h2>
+  <div id="drop-zone">
+    <span class="icon">&#x1F4F7;</span>
+    <p><strong>Drag &amp; drop</strong> your photo here<br>or <strong>click to browse</strong><br><small style="opacity:.6">JPG &middot; PNG &middot; WEBP &middot; up to 15 MB</small></p>
+  </div>
+  <input type="file" id="file-input" accept="image/*">
 
-    <div class="settings-grid" style="margin-top:24px">
-      <div class="setting-row">
-        <label>Line Weight</label>
-        <div class="btn-group" id="lw-group">
-          <button data-val="thin">Thin</button>
-          <button data-val="medium" class="active">Medium</button>
-          <button data-val="bold">Bold</button>
-        </div>
-      </div>
-      <div class="setting-row">
-        <label>Shading Density</label>
-        <div class="btn-group" id="sd-group">
-          <button data-val="minimal">Minimal</button>
-          <button data-val="moderate" class="active">Moderate</button>
-          <button data-val="heavy">Heavy</button>
-        </div>
-      </div>
-      <div class="setting-row">
-        <label>Line Complexity</label>
-        <div class="btn-group" id="lc-group">
-          <button data-val="simple">Simple</button>
-          <button data-val="medium" class="active">Medium</button>
-          <button data-val="complex">Complex</button>
-        </div>
+  <div id="editor" hidden>
+    <div class="tabs">
+      <button data-tab="adjust" class="active">&#x2702; Crop &amp; adjust</button>
+      <button data-tab="subject">&#x1F3AF; Subject</button>
+    </div>
+    <div id="stage-wrap">
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <img id="ov" alt="" hidden>
+        <div id="marks"></div>
+        <div id="cropbox"><i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i><i data-h="e"></i><i data-h="se"></i><i data-h="s"></i><i data-h="sw"></i><i data-h="w"></i></div>
+        <div class="spin" id="stage-spin" hidden></div>
       </div>
     </div>
 
-    <p style="color:var(--muted);font-size:.78rem;margin-top:14px;line-height:1.6">
-      AI auto-detects your image type and overrides these settings for best results. Manual settings apply as fallback.
-    </p>
-    <button id="gen-btn" disabled>Generate Stencil &rarr;</button>
-  </section>
+    <div id="panel-adjust">
+      <div class="row"><label>Rotate / flip</label>
+        <button class="chip" data-act="rotL" title="Rotate left">&#x21B6; 90&deg;</button>
+        <button class="chip" data-act="rotR" title="Rotate right">&#x21B7; 90&deg;</button>
+        <button class="chip" data-act="flipH" title="Flip left-right">&#x21C4; Flip</button>
+        <button class="chip" data-act="flipV" title="Flip top-bottom">&#x21C5; Flip</button>
+      </div>
+      <div class="row" id="aspects"><label>Crop shape</label>
+        <button class="chip active" data-a="0">Free</button><button class="chip" data-a="1">1:1</button><button class="chip" data-a="0.8">4:5</button>
+        <button class="chip" data-a="1.5">3:2</button><button class="chip" data-a="1.7778">16:9</button>
+        <button class="chip" data-act="cropReset">Reset crop</button>
+      </div>
+      <div class="slider"><label for="s-bright">Brightness</label><output id="o-bright">0</output><input type="range" id="s-bright" min="-100" max="100" step="1" value="0"></div>
+      <div class="slider"><label for="s-contrast">Contrast</label><output id="o-contrast">0</output><input type="range" id="s-contrast" min="-100" max="100" step="1" value="0"></div>
+      <label class="check"><input type="checkbox" id="c-auto"> Auto-levels (stretch dull or washed-out photos)</label>
+      <p class="hint">Drag the box to crop. Cropping tight to what you want inked gives the cleanest stencil.</p>
+    </div>
 
-  <section class="card">
-    <h2>&#x1F5BC; Stencil Output</h2>
-    <div id="status-area">
-      <div class="progress-bar-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-      <p class="status-msg" id="status-msg">Upload a photo to get started.</p>
-    </div>
-    <div id="output-area">
-      <img id="stencil-img" class="stencil-preview" alt="Generated stencil">
-      <div class="dl-buttons" style="margin-bottom:16px">
-        <a id="dl-png" class="dl-btn png" href="#" download>&#x2B07; PNG (300 DPI)</a>
-        <a id="dl-pdf" class="dl-btn pdf" href="#" download>&#x2B07; PDF (Print)</a>
+    <div id="panel-subject" hidden>
+      <div class="row"><label>Click mode</label>
+        <button class="chip active" data-mode="pick">&#x1F3AF; Pick object</button>
+        <button class="chip" data-mode="add">&#xFF0B; Add to subject</button>
+        <button class="chip" data-mode="remove">&#xFF0D; Remove part</button>
+        <button class="chip" data-act="autoSubject">&#x21BA; Auto subject</button>
       </div>
-      <div id="ai-panel">
-        <h4>&#x1F916; AI Vision Analysis</h4>
-        <div class="ai-tags" id="ai-tags"></div>
-      </div>
+      <p class="hint">The <b>bright area</b> is the subject (gold outline); the dark area is left out. <b>Click an object</b> to make it the subject, use <b>Add</b>/<b>Remove</b> to fine-tune. Shortcuts: <b>Shift</b>-click adds, <b>Alt</b>/right-click removes.</p>
+      <div class="ai-line" id="ai-line" hidden></div>
     </div>
-  </section>
+
+    <div class="row" style="margin-top:4px"><label>Tattoo size</label>
+      <input type="number" id="size-in" min="0.5" max="14" step="0.25" value="5"> <span class="hint" style="margin:0">in &nbsp;(<span id="size-cm">12.7</span> cm) &middot; the subject's longest side</span>
+    </div>
+    <div class="row" id="size-chips"><label></label>
+      <button class="chip" data-s="2">2"</button><button class="chip" data-s="3">3"</button><button class="chip" data-s="4">4"</button><button class="chip active" data-s="5">5"</button><button class="chip" data-s="6">6"</button><button class="chip" data-s="8">8"</button>
+    </div>
+
+    <button id="gen-btn">Generate stencil &rarr;</button>
+    <div style="text-align:center"><button class="link" id="new-btn">Choose a different photo</button></div>
+  </div>
+</section>
+
+<!-- ───────────── 2 · stencil ───────────── -->
+<section class="card">
+  <h2>2 &middot; Stencil</h2>
+  <div class="bar" id="bar" hidden></div>
+  <p class="status" id="status">Upload a photo to get started.</p>
+  <div id="placeholder">Your stencil appears here.<br>Afterwards you can fine-tune it with the sliders &mdash; including bringing back the background line work.</div>
+  <div id="result" hidden>
+    <div class="preview-wrap"><img id="stencil-img" alt="Generated stencil"><div id="busy" hidden></div></div>
+    <div class="dl-buttons">
+      <a id="dl-png" class="dl-btn png" href="#" download="tattoo-stencil.png">&#x2B07; PNG (300 DPI)</a>
+      <a id="dl-pdf" class="dl-btn pdf" href="#" download="tattoo-stencil.pdf">&#x2B07; PDF (print)</a>
+    </div>
+    <div id="info"></div>
+    <div id="post">
+      <div class="top"><h3>Post-processing</h3><button class="chip" id="post-reset">Reset</button></div>
+      <div class="slider"><label for="p-background">Background line work</label><output id="v-background">Subject only</output>
+        <input type="range" id="p-background" min="0" max="100" step="1" value="0"><small><span>Subject only</span><span>Whole photo</span></small></div>
+      <div class="slider"><label for="p-detail">Line detail</label><output id="v-detail">50</output>
+        <input type="range" id="p-detail" min="0" max="100" step="1" value="50"><small><span>Bold shapes only</span><span>Fine detail</span></small></div>
+      <div class="slider"><label for="p-cleanup">Remove small marks</label><output id="v-cleanup">35</output>
+        <input type="range" id="p-cleanup" min="0" max="100" step="1" value="35"><small><span>Keep everything</span><span>Cleaner</span></small></div>
+      <div class="slider"><label for="p-weightMm">Line weight</label><output id="v-weightMm">0.40 mm</output>
+        <input type="range" id="p-weightMm" min="0.15" max="1.2" step="0.05" value="0.4"><small><span>Fine</span><span>Bold</span></small></div>
+      <label class="check"><input type="checkbox" id="p-mirror"> Mirror image (for thermal transfer paper)</label>
+      <div id="ai-tags"></div>
+    </div>
+  </div>
+</section>
 </main>
-
-<footer>
-  <a href="https://tat.signaturediversified.com">tat.signaturediversified.com</a>
-  &nbsp;&middot;&nbsp; AI Tattoo Stencil Generator &nbsp;&middot;&nbsp;
-  Powered by <a href="https://ollama.com">Ollama</a> + OpenCV
-</footer>
+<footer><a href="https://tat.signaturediversified.com">tat.signaturediversified.com</a> &nbsp;&middot;&nbsp; AI Tattoo Stencil Generator &nbsp;&middot;&nbsp; <a href="https://github.com/xmindpingx/tattooshop">source</a></footer>
 
 <script>
-let selectedFile = null;
-let settings = { lineWeight:'medium', shadingDensity:'moderate', lineComplexity:'medium' };
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const DEFAULT_STYLE = { background:0, detail:50, cleanup:35, weightMm:0.4, mirror:false };
+const S = { base:null, baseId:0, bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, tab:'adjust',
+  job:null, points:[], mode:'pick', sizeIn:5, style:{...DEFAULT_STYLE}, styleTouched:false, hasStencil:false, prepCache:null };
 
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const previewImg = document.getElementById('preview-img');
-const genBtn = document.getElementById('gen-btn');
-
-dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-
-function loadFile(file) {
-  if (!file || !/^image\//.test(file.type)) return;
-  selectedFile = file;
-  previewImg.src = URL.createObjectURL(file);
-  previewImg.style.display = 'block';
-  document.getElementById('drop-icon').style.display = 'none';
-  document.getElementById('drop-label').style.display = 'none';
-  genBtn.disabled = false;
-  setStatus('Ready — click Generate Stencil', '');
+/* ───────── status helpers ───────── */
+function say(msg, cls = '') { const s = $('#status'); s.textContent = msg; s.className = 'status ' + cls; }
+function bar(on) { $('#bar').hidden = !on; }
+async function api(url, body, form) {
+  const r = await fetch(url, form ? { method:'POST', body:form } : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { if (r.status === 404) S.job = null; throw new Error(d.error || ('Server error ' + r.status)); }
+  return d;
 }
 
-['lw','sd','lc'].forEach(prefix => {
-  const key = {lw:'lineWeight',sd:'shadingDensity',lc:'lineComplexity'}[prefix];
-  document.getElementById(`${prefix}-group`).addEventListener('click', e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    document.querySelectorAll(`#${prefix}-group button`).forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    settings[key] = btn.dataset.val;
-  });
-});
+/* ───────── loading a photo ───────── */
+const dz = $('#drop-zone'), fi = $('#file-input');
+dz.onclick = () => fi.click();
+fi.onchange = e => loadFile(e.target.files[0]);
+dz.ondragover = e => { e.preventDefault(); dz.classList.add('dragover'); };
+dz.ondragleave = () => dz.classList.remove('dragover');
+dz.ondrop = e => { e.preventDefault(); dz.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); };
+$('#new-btn').onclick = () => { $('#editor').hidden = true; dz.hidden = false; fi.value = ''; S.job = null; };
 
-genBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
-  genBtn.disabled = true;
-  document.getElementById('output-area').style.display = 'none';
-  setStatus('AI analyzing your image...', '');
-  setProgress(10);
+async function loadFile(f) {
+  if (!f || !/^image\//.test(f.type)) return;
+  let bmp;
+  try { bmp = await createImageBitmap(f, { imageOrientation:'from-image' }); }
+  catch { try { bmp = await createImageBitmap(f); } catch { say('That file could not be read as an image.', 'error'); return; } }
+  const sc = Math.min(1, 4000 / Math.max(bmp.width, bmp.height));
+  const c = mk(bmp.width * sc, bmp.height * sc), x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
+  Object.assign(S, { base:c, baseId:Date.now(), bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, job:null, points:[], prepCache:null, mode:'pick' });
+  $('#s-bright').value = 0; $('#s-contrast').value = 0; $('#c-auto').checked = false; syncOutputs(); setAspectChip(0);
+  dz.hidden = true; $('#editor').hidden = false;
+  setTab('adjust');
+  say(S.hasStencil ? 'New photo loaded. Generate to replace the stencil.' : 'Crop and adjust if you like, then press Generate.');
+}
 
-  const fd = new FormData();
-  fd.append('photo', selectedFile);
-  fd.append('lineWeight', settings.lineWeight);
-  fd.append('shadingDensity', settings.shadingDensity);
-  fd.append('lineComplexity', settings.lineComplexity);
-
-  const timers = [
-    setTimeout(() => { setStatus('Detecting edges and line weights...'); setProgress(35); }, 2000),
-    setTimeout(() => { setStatus('Applying stencil processing...'); setProgress(60); }, 5000),
-    setTimeout(() => { setStatus('Finalizing output...'); setProgress(85); }, 9000),
-  ];
-
-  try {
-    const resp = await fetch('/api/generate', { method:'POST', body:fd });
-    timers.forEach(clearTimeout);
-    const data = await resp.json();
-    if (!resp.ok || !data.success) throw new Error(data.error || 'Server error');
-    setProgress(100);
-    setStatus('Stencil ready!', 'success');
-    const stencilImg = document.getElementById('stencil-img');
-    stencilImg.src = data.files.png + '?t=' + Date.now();
-    document.getElementById('dl-png').href = data.files.png;
-    document.getElementById('dl-png').download = 'tattoo-stencil.png';
-    document.getElementById('dl-pdf').href = data.files.pdf;
-    document.getElementById('dl-pdf').download = 'tattoo-stencil.pdf';
-    document.getElementById('output-area').style.display = 'block';
-    if (data.aiAnalysis) {
-      const panel = document.getElementById('ai-panel');
-      const tags = document.getElementById('ai-tags');
-      panel.style.display = 'block';
-      tags.innerHTML = '';
-      const ai = data.aiAnalysis;
-      [
-        {label:`Subject: ${ai.subject}`, hi:true},
-        {label:`Lines: ${ai.lineComplexity}`},
-        {label:`Shading: ${ai.shadingDensity}`},
-        {label:`Weight: ${ai.lineWeight}`, hi:true},
-        ...(ai.preserveDetails||[]).map(d=>({label:d}))
-      ].forEach(({label,hi}) => {
-        const t = document.createElement('span');
-        t.className = `ai-tag${hi?' highlight':''}`;
-        t.textContent = label;
-        tags.appendChild(t);
-      });
+/* ───────── adjusted / cropped image ───────── */
+function renderAdjusted(scale) {
+  const b = S.base, c = mk(b.width * scale, b.height * scale), x = c.getContext('2d', { willReadFrequently:true });
+  x.drawImage(b, 0, 0, c.width, c.height);
+  if (S.bright || S.contrast || S.auto) {
+    const id = x.getImageData(0, 0, c.width, c.height), d = id.data;
+    let lo = 0, hi = 255;
+    if (S.auto) {
+      const h = new Uint32Array(256);
+      for (let i = 0; i < d.length; i += 4) h[(d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8]++;
+      const n = d.length / 4; let a = 0; lo = 0; while (lo < 254 && (a += h[lo]) < n * 0.01) lo++;
+      a = 0; hi = 255; while (hi > lo + 8 && (a += h[hi]) < n * 0.01) hi--;
     }
-  } catch(err) {
-    timers.forEach(clearTimeout);
-    setStatus('Error: ' + err.message, 'error');
-    setProgress(0);
-  } finally {
-    genBtn.disabled = false;
+    const cf = S.contrast >= 0 ? 1 + S.contrast / 50 : 1 + S.contrast / 100, add = S.bright * 1.27, sa = 255 / Math.max(8, hi - lo);
+    const lut = new Uint8ClampedArray(256);
+    for (let i = 0; i < 256; i++) lut[i] = ((i - lo) * sa - 128) * cf + 128 + add;
+    for (let i = 0; i < d.length; i += 4) { d[i] = lut[d[i]]; d[i+1] = lut[d[i+1]]; d[i+2] = lut[d[i+2]]; }
+    x.putImageData(id, 0, 0);
   }
-});
+  return c;
+}
+const sigOf = () => JSON.stringify([S.baseId, S.bright, S.contrast, S.auto, ...['x','y','w','h'].map(k => +S.crop[k].toFixed(4))]);
+function prepared() {                       // the photo exactly as it will be sent: rotated/flipped, adjusted, cropped
+  const sig = sigOf();
+  if (S.prepCache && S.prepCache.sig === sig) return S.prepCache.canvas;
+  const b = S.base, cl = Math.max(S.crop.w * b.width, S.crop.h * b.height), sc = Math.min(1, 2400 / cl);
+  const full = renderAdjusted(sc), r = S.crop;
+  const out = mk(r.w * full.width, r.h * full.height);
+  out.getContext('2d').drawImage(full, r.x * full.width, r.y * full.height, out.width, out.height, 0, 0, out.width, out.height);
+  S.prepCache = { sig, canvas:out };
+  return out;
+}
 
-function setStatus(msg, cls='') {
-  const el = document.getElementById('status-msg');
-  el.textContent = msg;
-  el.className = 'status-msg ' + cls;
+/* ───────── stage drawing ───────── */
+function draw() {
+  if (!S.base) return;
+  const view = $('#view');
+  let c;
+  if (S.tab === 'adjust') c = renderAdjusted(Math.min(1, 1100 / Math.max(S.base.width, S.base.height)));
+  else { const p = prepared(), k = Math.min(1, 1100 / Math.max(p.width, p.height)); c = mk(p.width * k, p.height * k); c.getContext('2d').drawImage(p, 0, 0, c.width, c.height); }
+  view.width = c.width; view.height = c.height; view.getContext('2d').drawImage(c, 0, 0);
+  layoutStage(); layoutCrop();
 }
-function setProgress(pct) {
-  document.getElementById('progress-wrap').style.display = pct > 0 ? 'block' : 'none';
-  document.getElementById('progress-bar').style.width = pct + '%';
+function layoutStage() {
+  const wrap = $('#stage-wrap'), v = $('#view'), st = $('#stage'), maxW = wrap.clientWidth - 22;
+  if (maxW <= 0) return;
+  const k = Math.min(maxW / v.width, Math.min(520, innerHeight * 0.62) / v.height);
+  st.style.width = Math.round(v.width * k) + 'px'; st.style.height = Math.round(v.height * k) + 'px';
 }
+addEventListener('resize', layoutStage);
+function layoutCrop() {
+  const b = $('#cropbox'), r = S.crop;
+  b.hidden = S.tab !== 'adjust';
+  b.style.left = r.x * 100 + '%'; b.style.top = r.y * 100 + '%'; b.style.width = r.w * 100 + '%'; b.style.height = r.h * 100 + '%';
+}
+function syncOutputs() { $('#o-bright').textContent = S.bright; $('#o-contrast').textContent = S.contrast; }
+
+/* ───────── tabs ───────── */
+$$('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+async function setTab(t) {
+  S.tab = t;
+  $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  $('#panel-adjust').hidden = t !== 'adjust'; $('#panel-subject').hidden = t !== 'subject';
+  $('#stage').classList.toggle('pick', t === 'subject');
+  $('#ov').hidden = t !== 'subject'; $('#marks').hidden = t !== 'subject';
+  if (t === 'subject') {
+    draw();
+    try { await ensurePrepared(); } catch (e) { say(e.message, 'error'); return; }
+    if (S.tab !== 'subject') return;
+    $('#ov').src = S.job.overlay; drawMarks();
+    fetch('/api/subject', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ jobId:S.job.id, warm:true }) }).catch(() => {});
+  } else draw();
+}
+
+/* ───────── rotate / flip / aspect / sliders ───────── */
+function transformBase(fn, w, h) { const c = mk(w, h), x = c.getContext('2d'); fn(x, c); S.base = c; S.baseId = Date.now(); S.job = null; S.prepCache = null; }
+const act = {
+  rotR() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(b, 0, 0); }, b.height, b.width); S.crop = { x:1 - r.y - r.h, y:r.x, w:r.h, h:r.w }; S.aspect = S.aspect ? 1 / S.aspect : 0; },
+  rotL() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(0, c.height); x.rotate(-Math.PI / 2); x.drawImage(b, 0, 0); }, b.height, b.width); S.crop = { x:r.y, y:1 - r.x - r.w, w:r.h, h:r.w }; S.aspect = S.aspect ? 1 / S.aspect : 0; },
+  flipH() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(b, 0, 0); }, b.width, b.height); S.crop = { ...r, x:1 - r.x - r.w }; },
+  flipV() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(0, c.height); x.scale(1, -1); x.drawImage(b, 0, 0); }, b.width, b.height); S.crop = { ...r, y:1 - r.y - r.h }; },
+  cropReset() { S.crop = { x:0, y:0, w:1, h:1 }; S.aspect = 0; setAspectChip(0); },
+  autoSubject() { S.points = []; drawMarks(); sendPoints(); }
+};
+$$('[data-act]').forEach(b => b.onclick = () => { act[b.dataset.act](); if (S.tab === 'adjust') draw(); });
+function setAspectChip(a) { $$('#aspects [data-a]').forEach(b => b.classList.toggle('active', +b.dataset.a === a)); }
+$$('#aspects [data-a]').forEach(b => b.onclick = () => {
+  const a = +b.dataset.a; S.aspect = a; setAspectChip(a);
+  if (a) {
+    const bw = S.base.width, bh = S.base.height, r = S.crop, cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    let w = r.w, h = r.w * bw / (a * bh);
+    if (h > r.h) { h = r.h; w = h * bh * a / bw; }
+    w = Math.min(w, 1); h = Math.min(h, 1);
+    S.crop = { x:clamp(cx - w / 2, 0, 1 - w), y:clamp(cy - h / 2, 0, 1 - h), w, h };
+  }
+  layoutCrop();
+});
+const onAdj = () => { S.prepCache = null; draw(); };
+$('#s-bright').oninput = e => { S.bright = +e.target.value; syncOutputs(); onAdj(); };
+$('#s-contrast').oninput = e => { S.contrast = +e.target.value; syncOutputs(); onAdj(); };
+$('#c-auto').onchange = e => { S.auto = e.target.checked; onAdj(); };
+
+/* ───────── crop box dragging ───────── */
+function dragCrop(d, dx, dy) {
+  const bw = S.base.width, bh = S.base.height, MIN = 0.05; let { x, y, w, h } = d.r;
+  if (d.h === 'move') return { x:clamp(x + dx, 0, 1 - w), y:clamp(y + dy, 0, 1 - h), w, h };
+  const W = d.h.includes('w'), E = d.h.includes('e'), N = d.h.includes('n'), Sx = d.h.includes('s');
+  let x1 = x, y1 = y, x2 = x + w, y2 = y + h;
+  if (W) x1 = clamp(x + dx, 0, x2 - MIN); if (E) x2 = clamp(x + w + dx, x1 + MIN, 1);
+  if (N) y1 = clamp(y + dy, 0, y2 - MIN); if (Sx) y2 = clamp(y + h + dy, y1 + MIN, 1);
+  if (S.aspect) {
+    const ar = S.aspect, horiz = W || E, vert = N || Sx;
+    let nw = x2 - x1, nh = y2 - y1;
+    if (horiz && !vert) nh = nw * bw / (ar * bh); else if (vert && !horiz) nw = nh * bh * ar / bw;
+    else { const hw = nw * bw / (ar * bh); if (hw >= nh) nh = hw; else nw = nh * bh * ar / bw; }
+    const ax = W ? x2 : E ? x1 : (x1 + x2) / 2, ay = N ? y2 : Sx ? y1 : (y1 + y2) / 2;
+    const mw = W ? ax : E ? 1 - ax : 2 * Math.min(ax, 1 - ax), mh = N ? ay : Sx ? 1 - ay : 2 * Math.min(ay, 1 - ay);
+    const f = Math.min(1, mw / nw, mh / nh); nw *= f; nh *= f;
+    x1 = W ? ax - nw : E ? ax : ax - nw / 2; y1 = N ? ay - nh : Sx ? ay : ay - nh / 2; x2 = x1 + nw; y2 = y1 + nh;
+  }
+  return { x:x1, y:y1, w:x2 - x1, h:y2 - y1 };
+}
+(() => {
+  const box = $('#cropbox'); let drag = null;
+  box.onpointerdown = e => { drag = { h:e.target.dataset.h || 'move', sx:e.clientX, sy:e.clientY, r:{ ...S.crop } }; box.setPointerCapture(e.pointerId); e.preventDefault(); };
+  box.onpointermove = e => { if (!drag) return; const R = $('#stage').getBoundingClientRect(); S.crop = dragCrop(drag, (e.clientX - drag.sx) / R.width, (e.clientY - drag.sy) / R.height); layoutCrop(); };
+  box.onpointerup = box.onpointercancel = () => { drag = null; S.prepCache = null; };
+})();
+
+/* ───────── upload + auto subject + AI suggestions ───────── */
+let preparing = null;
+function ensurePrepared() {
+  const sig = sigOf();
+  if (S.job && S.job.sig === sig) return Promise.resolve(S.job);
+  if (preparing && preparing.sig === sig) return preparing.p;
+  const p = (async () => {
+    $('#stage-spin').hidden = false; say('Uploading and finding the subject…'); bar(true);
+    try {
+      const blob = await new Promise(r => prepared().toBlob(r, 'image/jpeg', 0.92));
+      const fd = new FormData(); fd.append('photo', blob, 'photo.jpg');
+      const d = await api('/api/prepare', null, fd);
+      S.job = { id:d.jobId, sig, overlay:d.overlay, ai:d.ai }; S.points = [];
+      if (d.ai && !S.styleTouched) { Object.assign(S.style, d.ai.suggest); syncStyleUI(); }
+      showAI(d.ai);
+      say(d.isolated ? 'Subject found.' : 'No single subject stood out, so the whole photo is used.', 'ok');
+      return S.job;
+    } finally { $('#stage-spin').hidden = true; bar(false); preparing = null; }
+  })();
+  preparing = { sig, p };
+  return p;
+}
+function showAI(ai) {
+  const line = $('#ai-line'), tags = $('#ai-tags'); tags.innerHTML = '';
+  if (!ai) { line.hidden = true; return; }
+  line.hidden = false; line.innerHTML = `<b>AI sees:</b> ${esc(ai.subject || 'the photo')}${ai.category ? ' (' + esc(ai.category) + ')' : ''}${ai.notes ? '<br>' + esc(ai.notes) : ''}`;
+  [[ai.subject, 1], [ai.category, 0], [ai.raw && ai.raw.lineWeight && 'weight: ' + ai.raw.lineWeight, 0], [ai.raw && ai.raw.shadingDensity && 'shading: ' + ai.raw.shadingDensity, 0]]
+    .filter(t => t[0]).forEach(([t, hi]) => { const s = document.createElement('span'); s.className = 'tag' + (hi ? ' hi' : ''); s.textContent = t; tags.appendChild(s); });
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+/* ───────── subject picking ───────── */
+$$('[data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; $$('[data-mode]').forEach(x => x.classList.toggle('active', x === b)); });
+function drawMarks() {
+  const m = $('#marks'); m.innerHTML = '';
+  S.points.forEach(p => { const d = document.createElement('i'); d.className = 'mk ' + (p.l ? 'pos' : 'neg'); d.style.left = p.x * 100 + '%'; d.style.top = p.y * 100 + '%'; m.appendChild(d); });
+}
+$('#stage').addEventListener('contextmenu', e => { if (S.tab === 'subject') e.preventDefault(); });
+$('#stage').addEventListener('pointerdown', e => {
+  if (S.tab !== 'subject' || !S.job || preparing) return;
+  const R = $('#stage').getBoundingClientRect(), p = { x:clamp((e.clientX - R.left) / R.width, 0, 1), y:clamp((e.clientY - R.top) / R.height, 0, 1) };
+  let mode = S.mode; if (e.shiftKey) mode = 'add'; if (e.altKey || e.button === 2) mode = 'remove';
+  if (mode === 'pick') S.points = [{ ...p, l:1 }]; else S.points.push({ ...p, l:mode === 'add' ? 1 : 0 });
+  drawMarks(); sendPoints(); e.preventDefault();
+});
+let segSeq = 0;
+async function sendPoints() {
+  const my = ++segSeq, before = S.points.slice();
+  $('#stage-spin').hidden = false;
+  try {
+    const r = await api('/api/subject', { jobId:S.job.id, points:S.points });
+    if (my !== segSeq) return;
+    $('#ov').src = r.overlay; say(S.points.length ? 'Subject updated.' : 'Back to the automatic subject.', 'ok');
+    if (S.hasStencil) scheduleRender(100);
+  } catch (e) { if (my === segSeq) { S.points = before.slice(0, -1); drawMarks(); say(e.message, 'error'); } }
+  finally { if (my === segSeq) $('#stage-spin').hidden = true; }
+}
+
+/* ───────── size ───────── */
+function setSize(v, fromChip) {
+  S.sizeIn = clamp(+v || 5, 0.5, 14); $('#size-cm').textContent = (S.sizeIn * 2.54).toFixed(1);
+  if (!fromChip) $$('#size-chips [data-s]').forEach(b => b.classList.toggle('active', +b.dataset.s === S.sizeIn)); else $('#size-in').value = S.sizeIn;
+  $$('#size-chips [data-s]').forEach(b => b.classList.toggle('active', +b.dataset.s === S.sizeIn));
+  if (S.hasStencil) scheduleRender(350);
+}
+$('#size-in').oninput = e => setSize(e.target.value);
+$$('#size-chips [data-s]').forEach(b => b.onclick = () => setSize(b.dataset.s, true));
+
+/* ───────── generate + live post-processing ───────── */
+const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm' };
+function syncStyleUI() {
+  for (const k of ['background', 'detail', 'cleanup', 'weightMm']) { $('#p-' + k).value = S.style[k]; $('#v-' + k).textContent = FMT[k](S.style[k]); }
+  $('#p-mirror').checked = S.style.mirror;
+}
+for (const k of ['background', 'detail', 'cleanup', 'weightMm']) {
+  $('#p-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; $('#v-' + k).textContent = FMT[k](S.style[k]); scheduleRender(250); };
+}
+$('#p-mirror').onchange = e => { S.style.mirror = e.target.checked; S.styleTouched = true; scheduleRender(50); };
+$('#post-reset').onclick = () => { const bg = S.style.background; S.style = { ...DEFAULT_STYLE, background:0 }; if (S.job && S.job.ai) Object.assign(S.style, S.job.ai.suggest); S.styleTouched = false; syncStyleUI(); scheduleRender(50); };
+
+let rtimer = null, rendering = false, again = false;
+function scheduleRender(ms) { clearTimeout(rtimer); rtimer = setTimeout(runRender, ms); }
+async function runRender() {
+  if (rendering) { again = true; return; }
+  rendering = true;
+  try { do { again = false; await renderOnce(); } while (again); }
+  catch (e) { say(e.message, 'error'); }
+  finally { rendering = false; $('#busy').hidden = true; bar(false); }
+}
+async function renderOnce() {
+  if (!S.job) throw new Error('Session expired. Press Generate again.');
+  $('#busy').hidden = !S.hasStencil; bar(true);
+  const r = await api('/api/render', { jobId:S.job.id, ...S.style, sizeIn:S.sizeIn });
+  await new Promise((res, rej) => { const im = new Image(); im.onload = () => { $('#stencil-img').src = im.src; res(); }; im.onerror = () => rej(new Error('Could not load the stencil image')); im.src = r.files.png; });
+  $('#dl-png').href = r.files.png; $('#dl-pdf').href = r.files.pdf;
+  const fit = r.fitScale < 0.995 ? `PDF is scaled to ${Math.round(r.fitScale * 100)}% to fit the page (the PNG is full size).` : `PDF prints at true size on US letter (${r.orientation}).`;
+  $('#info').innerHTML = `Stencil ${r.inches[0]} &times; ${r.inches[1]} in &middot; ink ${r.inkCoverage}% of the sheet &middot; ${fit}`;
+  $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
+  say('Stencil ready. Fine-tune it below.', 'ok');
+}
+$('#gen-btn').onclick = async () => {
+  const b = $('#gen-btn'); b.disabled = true;
+  try { await ensurePrepared(); say('Drawing the stencil…'); await runRender(); }
+  catch (e) { say(e.message, 'error'); }
+  finally { b.disabled = false; }
+};
+syncStyleUI();
 </script>
 </body>
 </html>
