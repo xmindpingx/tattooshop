@@ -150,6 +150,13 @@ def cmd_prepare(dir):
     meta = {'w': W, 'h': H, 'ver': 0}
     out = _store_mask(dir, mask, meta, True)
     out.update({'width': W, 'height': H})
+    try:                                                # how much of the subject is skin-toned (portraits, body parts)
+        small = cv2.resize(rgb, (W // 4 or 1, H // 4 or 1), interpolation=cv2.INTER_AREA)
+        ms = cv2.resize(mask, (small.shape[1], small.shape[0]), interpolation=cv2.INTER_NEAREST) > 0
+        sk = cv2.inRange(cv2.cvtColor(small, cv2.COLOR_RGB2YCrCb), (50, 135, 77), (255, 175, 127)) > 0
+        out['skinShare'] = round(float((sk & ms).sum() / max(1, ms.sum())), 3)
+    except Exception:
+        out['skinShare'] = 0
     return out
 
 def _embed(d, src):
@@ -191,6 +198,44 @@ def cmd_segment(dir, points=None, warm=False):
 
 
 # ───────────────────────────── line art ─────────────────────────────
+def prefilter(rgb, smooth=0, texture=0, skin=0):
+    """Simplify the photo before the line model sees it, so skin pores, stubble and fur don't become scribbles.
+    smooth  0..100: removes small dark specks (stubble, pores) then softens skin while keeping real edges.
+    texture 0..100: flattens areas into patches of similar colour (less shading detail, bolder shapes)."""
+    smooth, texture, skin = float(smooth), float(texture), float(skin)
+    if smooth <= 0 and texture <= 0 and skin <= 0:
+        return rgb
+    H, W = rgb.shape[:2]
+    k = 1024.0 / max(H, W)
+    img = cv2.resize(rgb, (max(8, round(W * k)), max(8, round(H * k))), interpolation=cv2.INTER_AREA) if k < 1 else rgb.copy()
+    L = max(img.shape[:2])
+    if skin > 0:                                                         # wrinkles + blemishes, skin tones only
+        a = skin / 100.0
+        ycc = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+        m = cv2.inRange(ycc, (50, 130, 72), (255, 180, 130)).astype(np.float32) / 255.0
+        m = cv2.GaussianBlur(cv2.morphologyEx(m, cv2.MORPH_OPEN, disk(max(1, L // 300))), (0, 0), L * 0.004)[..., None]
+        r = max(1, round(L * (0.002 + 0.006 * a)))
+        sm = cv2.morphologyEx(cv2.morphologyEx(img, cv2.MORPH_CLOSE, disk(r)), cv2.MORPH_OPEN, disk(r))   # blemishes / spots
+        sm = cv2.medianBlur(sm, 2 * max(1, round(L * (0.003 + 0.006 * a))) + 1)
+        hh, ww = sm.shape[:2]
+        sm = cv2.resize(sm, (max(8, ww // 2), max(8, hh // 2)), interpolation=cv2.INTER_AREA)   # half-res = 4x faster
+        for _ in range(2 + int(a * 3)):                                  # flatten wrinkles but keep real edges
+            sm = cv2.bilateralFilter(sm, 0, 25 + 45 * a, max(3.0, L * (0.005 + 0.0125 * a)))
+        sm = cv2.resize(sm, (ww, hh), interpolation=cv2.INTER_LINEAR)
+        img = (sm * m + img * (1 - m)).astype(np.uint8)
+    if smooth > 0:
+        a = smooth / 100.0
+        r = max(1, round(L * (0.0015 + 0.0075 * a)))                    # speck size removed (px)
+        closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, disk(r))        # fills dark specks smaller than the disk
+        m = (2 * round(L * (0.001 + 0.005 * a))) + 1
+        img = cv2.medianBlur(closed, max(3, m))
+        for _ in range(1 + int(a * 3)):
+            img = cv2.bilateralFilter(img, 0, 18 + 40 * a, max(3.0, L * (0.004 + 0.012 * a)))
+    if texture > 0:
+        a = texture / 100.0
+        img = cv2.pyrMeanShiftFiltering(img, sp=max(3, round(L * (0.005 + 0.014 * a))), sr=12 + 28 * a)
+    return img
+
 def line_art(rgb, model='contour-1024.onnx'):
     """Informative-Drawings contour model. Returns ink strength 0..1 (1 = line) over the image area."""
     s = session(model)
@@ -205,10 +250,10 @@ def line_art(rgb, model='contour-1024.onnx'):
     out = s.run(None, {inp.name: (canvas.astype(np.float32) / 255.0).transpose(2, 0, 1)[None]})[0][0, 0]
     return 1.0 - np.clip(out[y0:y0 + h, x0:x0 + w], 0.0, 1.0)
 
-def ink_subject(d, src, mask, ver):
+def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0):
     """Line drawing of the subject alone, run on a tight crop so it gets the model's full resolution."""
     box = padded_box(mask)
-    p = P(d, f'ink_s{ver}.npy')
+    p = P(d, f'ink_s{ver}_{int(smooth)}_{int(texture)}_{int(skin)}.npy')
     if os.path.exists(p):
         return np.load(p).astype(np.float32), box
     y0, y1, x0, x1 = box
@@ -223,21 +268,21 @@ def ink_subject(d, src, mask, ver):
         comp = (rgb_c * alpha + 255 * (1 - alpha)).astype(np.uint8)
     else:
         comp = rgb_c
-    ink = line_art(comp)
+    ink = line_art(prefilter(comp, smooth, texture, skin))
     np.save(p, ink.astype(np.float16))
     return ink, box
 
-def ink_full(d, src):
-    p = P(d, 'ink_full.npy')
+def ink_full(d, src, smooth=0, texture=0, skin=0):
+    p = P(d, f'ink_full_{int(smooth)}_{int(texture)}_{int(skin)}.npy')
     if os.path.exists(p):
         return np.load(p).astype(np.float32)
-    ink = line_art(src)
+    ink = line_art(prefilter(src, smooth, texture, skin))
     np.save(p, ink.astype(np.float16))
     return ink
 
 
 # ───────────────────────────── render ─────────────────────────────
-def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, sizeIn=5.0, mirror=False):
+def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, sizeIn=5.0, mirror=False, smooth=0, texture=0, skin=0):
     T0 = time.time(); tm = {}
     detail, cleanup, background = [float(np.clip(v, 0, 100)) for v in (detail, cleanup, background)]
     weightMm = float(np.clip(weightMm, 0.1, 2.0)); sizeIn = float(np.clip(sizeIn, 0.5, 14))
@@ -273,7 +318,7 @@ def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, 
 
     # subject lines
     t1 = time.time()
-    ink_s, (cy0, cy1, cx0, cx1) = ink_subject(dir, src, mask, ver)
+    ink_s, (cy0, cy1, cx0, cx1) = ink_subject(dir, src, mask, ver, smooth, texture, skin)
     tm['draw_subject'] = time.time() - t1
     hc, wc = cy1 - cy0, cx1 - cx0
     hs, ws = max(1, round(hc * k)), max(1, round(wc * k))
@@ -289,7 +334,7 @@ def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, 
     # background lines, gated by distance from the subject and by stroke strength (strongest, nearest first)
     if s > 0:
         t1 = time.time()
-        ink_f = ink_full(dir, src)
+        ink_f = ink_full(dir, src, smooth, texture, skin)
         tm['draw_background'] = time.time() - t1
         hf, wf = ink_f.shape
         sy, sx = hf / H, wf / W
@@ -339,13 +384,27 @@ def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, 
         outline &= (near > ref * 0.006).astype(np.uint8)
         skel |= drop_fragments(outline, 0.01 * ref, 0.006 * ref)
 
-    # one uniform pen width, in real millimetres
-    w = max(3, int(round(weightMm / 25.4 * dpi / f)))
-    stroke = cv2.dilate(skel * 255, disk(w)).astype(np.float32)
-    stroke = cv2.GaussianBlur(stroke, (0, 0), max(0.6, w * 0.3))
-    if f > 1.01:
-        stroke = cv2.resize(stroke, (round(Wo * f), round(Ho * f)), interpolation=cv2.INTER_LINEAR)
-    ink = stroke > 127
+    # one uniform pen width, in real millimetres: smoothed centre-lines drawn crisp at final resolution
+    pen = max(4.0, weightMm / 25.4 * dpi)                      # final px; never thinner than ~0.34 mm @300dpi so nothing vanishes
+    Hf, Wf = round(Ho * f), round(Wo * f)
+    canvas8 = np.zeros((Hf, Wf), np.uint8)
+    cs, _ = cv2.findContours(skel.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    SH = 4
+    for c in cs:
+        pts = c[:, 0, :].astype(np.float32)
+        n = len(pts)
+        if n >= 9:                                             # circular moving average removes pixel staircase
+            win = min(n // 2 * 2 - 1, 9)
+            ker = np.ones(win, np.float32) / win
+            pad_ = win // 2
+            ext = np.concatenate([pts[-pad_:], pts, pts[:pad_]])
+            pts = np.stack([np.convolve(ext[:, 0], ker, 'valid'), np.convolve(ext[:, 1], ker, 'valid')], 1)
+        q = np.round((pts + 0.5) * f * (1 << SH)).astype(np.int32).reshape(-1, 1, 2)
+        if n == 1:
+            cv2.circle(canvas8, tuple(int(v) for v in ((pts[0] + 0.5) * f)), max(1, round(pen / 2)), 255, -1, cv2.LINE_AA)
+        else:
+            cv2.polylines(canvas8, [q], True, 255, max(1, round(pen)), cv2.LINE_AA, SH)
+    ink = canvas8 > 127
     rows, cols = np.where(ink.any(1))[0], np.where(ink.any(0))[0]
     if len(rows) == 0:
         raise ValueError('No lines came out. Raise "Line detail" or add some background line work.')
@@ -373,3 +432,14 @@ def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, 
             'inkCoverage': round(float((out < 128).mean()) * 100, 2), 'fitScale': round(fit, 3),
             'orientation': 'landscape' if pw > ph else 'portrait', 'isolated': bool(isolated),
             'timing': {a: round(b, 2) for a, b in tm.items()}}
+
+
+def cmd_filtered(dir, out, smooth=0, texture=0, skin=0):
+    """Save the photo as the line model sees it (after the pre-filters), full resolution JPEG."""
+    src = load_src(dir)
+    H, W = src.shape[:2]
+    img = prefilter(src, smooth, texture, skin)
+    if img.shape[:2] != (H, W):
+        img = cv2.resize(img, (W, H), interpolation=cv2.INTER_CUBIC)
+    Image.fromarray(img).save(out, 'JPEG', quality=95)
+    return {'file': out, 'width': W, 'height': H}

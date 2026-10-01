@@ -80,6 +80,10 @@ input[type=number] { width:84px; padding:7px 9px; background:var(--bg); border:1
 .dl-btn.png { background:var(--accent); color:#000; } .dl-btn.pdf { background:var(--accent2); color:#fff; }
 #info { color:var(--muted); font-size:.76rem; margin-bottom:16px; line-height:1.5; }
 #post { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px; }
+#post .subj-row { display:flex; gap:12px; align-items:center; padding:10px; margin-bottom:14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
+#subj-thumb { width:96px; height:96px; object-fit:contain; background:#050505 center/contain no-repeat; border-radius:6px; flex:none; }
+#simplify { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+#simplify .top { margin-bottom:10px; } #simplify h3 { margin:0; font-size:.9rem; color:var(--accent); }
 #post .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
 #post .top h3 { margin:0; }
 #ai-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
@@ -108,7 +112,7 @@ footer a { color:var(--accent); text-decoration:none; }
   <div id="editor" hidden>
     <div class="tabs">
       <button data-tab="adjust" class="active">&#x2702; Crop &amp; adjust</button>
-      <button data-tab="subject">&#x1F3AF; Subject</button>
+      <button data-tab="subject">&#x1F3AF; Subject of focus</button>
     </div>
     <div id="stage-wrap">
       <div id="stage">
@@ -136,6 +140,19 @@ footer a { color:var(--accent); text-decoration:none; }
       <div class="slider"><label for="s-contrast">Contrast</label><output id="o-contrast">0</output><input type="range" id="s-contrast" min="-100" max="100" step="1" value="0"></div>
       <label class="check"><input type="checkbox" id="c-auto"> Auto-levels (stretch dull or washed-out photos)</label>
       <p class="hint">Drag the box to crop. Cropping tight to what you want inked gives the cleanest stencil.</p>
+      <div id="simplify">
+        <div class="top"><h3>Simplify the photo</h3></div>
+        <div class="row" id="fpresets"><label>Quick filters</label>
+          <button class="chip" data-f="none">None</button>
+          <button class="chip" data-f="skin">Smooth skin</button>
+          <button class="chip" data-f="beard">Stubble &amp; beard</button>
+          <button class="chip" data-f="portrait">Portrait</button>
+          <button class="chip" data-f="bold">Bold &amp; simple</button>
+        </div>
+        <div class="slider"><label for="f-skin">Smooth skin (wrinkles &amp; blemishes)</label><output id="o-skin">0</output><input type="range" id="f-skin" min="0" max="100" step="1" value="0"></div>
+        <div class="slider"><label for="f-smooth">Hide stubble, pores &amp; specks</label><output id="o-smooth">0</output><input type="range" id="f-smooth" min="0" max="100" step="1" value="0"></div>
+        <div class="slider"><label for="f-texture">Flatten shading</label><output id="o-texture">0</output><input type="range" id="f-texture" min="0" max="100" step="1" value="0"></div>
+      </div>
     </div>
 
     <div id="panel-subject" hidden>
@@ -156,6 +173,7 @@ footer a { color:var(--accent); text-decoration:none; }
       <button class="chip" data-s="2">2"</button><button class="chip" data-s="3">3"</button><button class="chip" data-s="4">4"</button><button class="chip active" data-s="5">5"</button><button class="chip" data-s="6">6"</button><button class="chip" data-s="8">8"</button>
     </div>
 
+    <div class="row"><button class="chip" id="save-prep">&#x2B07; Save prepared photo</button><span class="hint" style="margin:0">crop, adjustments and smoothing filters applied</span></div>
     <button id="gen-btn">Generate stencil &rarr;</button>
     <div style="text-align:center"><button class="link" id="new-btn">Choose a different photo</button></div>
   </div>
@@ -176,6 +194,18 @@ footer a { color:var(--accent); text-decoration:none; }
     <div id="info"></div>
     <div id="post">
       <div class="top"><h3>Post-processing</h3><button class="chip" id="post-reset">Reset</button></div>
+      <div class="subj-row">
+        <img id="subj-thumb" alt="Subject of focus">
+        <div><b>Subject of focus</b><div class="hint" style="margin:2px 0 8px">The bright area inside the gold outline gets the full line work.</div>
+          <button class="chip" id="change-subject">&#x1F3AF; Change subject</button> <button class="chip" id="subj-auto">&#x21BA; Auto</button></div>
+      </div>
+      <div class="row" id="presets"><label>Presets</label>
+        <button class="chip" data-p="portrait" title="Faces: hides wrinkles and blemishes, keeps eyes, brows, nose, mouth">Clean portrait</button>
+        <button class="chip" data-p="beard" title="Stubble and beards become a clean outline">Beard &amp; stubble</button>
+        <button class="chip" data-p="minimal" title="Fewest lines">Minimal</button>
+        <button class="chip" data-p="detailed" title="Keeps tattoos and fine detail">Keep detail</button>
+        <button class="chip" data-p="original" title="No filters">Original</button>
+      </div>
       <div class="slider"><label for="p-background">Background line work</label><output id="v-background">Subject only</output>
         <input type="range" id="p-background" min="0" max="100" step="1" value="0"><small><span>Subject only</span><span>Whole photo</span></small></div>
       <div class="slider"><label for="p-detail">Line detail</label><output id="v-detail">50</output>
@@ -196,7 +226,7 @@ footer a { color:var(--accent); text-decoration:none; }
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const DEFAULT_STYLE = { background:0, detail:50, cleanup:35, weightMm:0.4, mirror:false };
+const DEFAULT_STYLE = { background:0, detail:50, cleanup:35, weightMm:0.4, mirror:false, smooth:0, texture:0, skin:0 };
 const S = { base:null, baseId:0, bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, tab:'adjust',
   job:null, points:[], mode:'pick', sizeIn:5, style:{...DEFAULT_STYLE}, styleTouched:false, hasStencil:false, prepCache:null };
 
@@ -375,15 +405,28 @@ function ensurePrepared() {
       const blob = await new Promise(r => prepared().toBlob(r, 'image/jpeg', 0.92));
       const fd = new FormData(); fd.append('photo', blob, 'photo.jpg');
       const d = await api('/api/prepare', null, fd);
-      S.job = { id:d.jobId, sig, overlay:d.overlay, ai:d.ai }; S.points = [];
-      if (d.ai && !S.styleTouched) { Object.assign(S.style, d.ai.suggest); syncStyleUI(); }
-      showAI(d.ai);
+      S.job = { id:d.jobId, sig, overlay:d.overlay, ai:d.ai, skinShare:d.skinShare }; S.points = [];
+      if (d.skinShare > 0.4 && !S.styleTouched && !S.hasStencil) { PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); }   // skin-toned subject: start with the portrait preset
+      showAI(null); pollAI(d.jobId);
       say(d.isolated ? 'Subject found.' : 'No single subject stood out, so the whole photo is used.', 'ok');
       return S.job;
     } finally { $('#stage-spin').hidden = true; bar(false); preparing = null; }
   })();
   preparing = { sig, p };
   return p;
+}
+async function pollAI(id) {
+  for (let i = 0; i < 70; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    if (!S.job || S.job.id !== id) return;
+    let d; try { d = await (await fetch('/api/ai/' + id)).json(); } catch { continue; }
+    if (d.status === 'done') {
+      S.job.ai = d.ai;
+      if (d.ai) { if (!S.styleTouched && !S.hasStencil) { Object.assign(S.style, aiDefaults(d.ai)); if (S.job.skinShare > 0.4) PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); } showAI(d.ai); }
+      return;
+    }
+    if (d.status === 'none') return;
+  }
 }
 function showAI(ai) {
   const line = $('#ai-line'), tags = $('#ai-tags'); tags.innerHTML = '';
@@ -415,7 +458,7 @@ async function sendPoints() {
   try {
     const r = await api('/api/subject', { jobId:S.job.id, points:S.points });
     if (my !== segSeq) return;
-    $('#ov').src = r.overlay; say(S.points.length ? 'Subject updated.' : 'Back to the automatic subject.', 'ok');
+    S.job.overlay = r.overlay; $('#ov').src = r.overlay; $('#subj-thumb').src = r.overlay; say(S.points.length ? 'Subject updated.' : 'Back to the automatic subject.', 'ok');
     if (S.hasStencil) scheduleRender(100);
   } catch (e) { if (my === segSeq) { S.points = before.slice(0, -1); drawMarks(); say(e.message, 'error'); } }
   finally { if (my === segSeq) $('#stage-spin').hidden = true; }
@@ -433,7 +476,40 @@ $$('#size-chips [data-s]').forEach(b => b.onclick = () => setSize(b.dataset.s, t
 
 /* ───────── generate + live post-processing ───────── */
 const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm' };
+const FILTERS = { none:[0,0,0], skin:[60,0,0], beard:[0,45,0], portrait:[30,25,0], bold:[40,60,50] };
+// style presets, picked by testing on a real stubble/wrinkle portrait: [skin, smooth, texture, detail, cleanup]
+const PRESETS = { portrait:[30,25,0,55,50], beard:[0,45,0,60,60], minimal:[25,40,0,65,45], detailed:[0,20,0,50,70], original:[0,0,0,50,35] };
+const PKEYS = ['skin', 'smooth', 'texture', 'detail', 'cleanup'];
+function aiDefaults(ai) {
+  const st = { ...DEFAULT_STYLE, background:0 };
+  if (!ai) return st;
+  Object.assign(st, ai.suggest || {});
+  if (/portrait|person|people|face|human/i.test(ai.category || '')) PKEYS.forEach((k, i) => st[k] = PRESETS.portrait[i]);
+  return st;
+}
+function syncPresetUI() {
+  $$('#presets [data-p]').forEach(b => b.classList.toggle('active', PRESETS[b.dataset.p].every((v, i) => S.style[PKEYS[i]] == v)));
+}
+$$('#presets [data-p]').forEach(b => b.onclick = () => { PRESETS[b.dataset.p].forEach((v, i) => S.style[PKEYS[i]] = v); S.styleTouched = true; syncStyleUI(); scheduleRender(50); });   // [skin, smooth, texture]
+function syncFilterUI() {
+  if (typeof syncPresetUI === 'function') syncPresetUI();
+  for (const k of ['skin', 'smooth', 'texture']) { $('#f-' + k).value = S.style[k]; $('#o-' + k).textContent = S.style[k]; }
+  $$('#fpresets [data-f]').forEach(b => { const f = FILTERS[b.dataset.f]; b.classList.toggle('active', f[0] == S.style.skin && f[1] == S.style.smooth && f[2] == S.style.texture); });
+}
+for (const k of ['skin', 'smooth', 'texture']) $('#f-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(400); };
+$$('#fpresets [data-f]').forEach(b => b.onclick = () => { const f = FILTERS[b.dataset.f]; [S.style.skin, S.style.smooth, S.style.texture] = f; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(50); });
+$('#save-prep').onclick = async () => {
+  const b = $('#save-prep'), t = b.textContent; b.disabled = true; b.textContent = 'Preparing…';
+  try {
+    await ensurePrepared();
+    const r = await fetch('/api/filtered', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ jobId:S.job.id, smooth:S.style.smooth, texture:S.style.texture, skin:S.style.skin }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Could not prepare the photo');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = 'tattoo-photo-prepared.jpg'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (e) { say(e.message, 'error'); }
+  finally { b.disabled = false; b.textContent = t; }
+};
 function syncStyleUI() {
+  syncFilterUI(); syncPresetUI();
   for (const k of ['background', 'detail', 'cleanup', 'weightMm']) { $('#p-' + k).value = S.style[k]; $('#v-' + k).textContent = FMT[k](S.style[k]); }
   $('#p-mirror').checked = S.style.mirror;
 }
@@ -441,7 +517,7 @@ for (const k of ['background', 'detail', 'cleanup', 'weightMm']) {
   $('#p-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; $('#v-' + k).textContent = FMT[k](S.style[k]); scheduleRender(250); };
 }
 $('#p-mirror').onchange = e => { S.style.mirror = e.target.checked; S.styleTouched = true; scheduleRender(50); };
-$('#post-reset').onclick = () => { const bg = S.style.background; S.style = { ...DEFAULT_STYLE, background:0 }; if (S.job && S.job.ai) Object.assign(S.style, S.job.ai.suggest); S.styleTouched = false; syncStyleUI(); scheduleRender(50); };
+$('#post-reset').onclick = () => { const bg = S.style.background; S.style = aiDefaults(S.job && S.job.ai); S.styleTouched = false; syncStyleUI(); scheduleRender(50); };
 
 let rtimer = null, rendering = false, again = false;
 function scheduleRender(ms) { clearTimeout(rtimer); rtimer = setTimeout(runRender, ms); }
@@ -460,6 +536,8 @@ async function renderOnce() {
   $('#dl-png').href = r.files.png; $('#dl-pdf').href = r.files.pdf;
   const fit = r.fitScale < 0.995 ? `PDF is scaled to ${Math.round(r.fitScale * 100)}% to fit the page (the PNG is full size).` : `PDF prints at true size on US letter (${r.orientation}).`;
   $('#info').innerHTML = `Stencil ${r.inches[0]} &times; ${r.inches[1]} in &middot; ink ${r.inkCoverage}% of the sheet &middot; ${fit}`;
+  try { const pc = prepared(), k = 192 / Math.max(pc.width, pc.height), c = mk(pc.width * k, pc.height * k); c.getContext('2d').drawImage(pc, 0, 0, c.width, c.height); $('#subj-thumb').style.backgroundImage = `url(${c.toDataURL('image/jpeg', 0.8)})`; } catch {}
+  $('#subj-thumb').src = S.job.overlay;
   $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
   say('Stencil ready. Fine-tune it below.', 'ok');
 }
@@ -469,6 +547,11 @@ $('#gen-btn').onclick = async () => {
   catch (e) { say(e.message, 'error'); }
   finally { b.disabled = false; }
 };
+$('#change-subject').onclick = async () => {
+  await setTab('subject'); $('#editor').scrollIntoView({ behavior:'smooth', block:'start' });
+  say('Click the object you want as the subject. The stencil updates by itself.');
+};
+$('#subj-auto').onclick = () => act.autoSubject();
 syncStyleUI();
 </script>
 </body>

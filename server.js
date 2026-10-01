@@ -65,7 +65,7 @@ async function analyze(buf) {
       prompt: 'You are a tattoo stencil artist. Look at this photo and plan a clean line-art stencil of its main subject only (outlines, no fills, background removed). ' +
         'Reply with JSON only: {"subject":"main subject in at most 6 words","category":"portrait|animal|floral|object|vehicle|text|scene|other",' +
         '"lineWeight":"thin|medium|bold","lineComplexity":"simple|medium|complex","shadingDensity":"minimal|moderate|heavy","notes":"one short tip for the tattoo artist"}'
-    }, { timeout: 45000 });
+    }, { timeout: 120000 });
     const j = JSON.parse((r.data.response || '').match(/\{[\s\S]*\}/)[0]);
     return {
       subject: String(j.subject || '').slice(0, 60), category: j.category, notes: String(j.notes || '').slice(0, 200),
@@ -100,16 +100,19 @@ const wrap = fn => (req, res) => fn(req, res).catch(e => {
 });
 const need = (req) => { const id = req.body && req.body.jobId; if (!UUID_RE.test(id || '') || !fs.existsSync(jobDir(id))) throw Object.assign(new Error('Session expired. Please re-upload the photo.'), { status: 404 }); return id; };
 
+const aiJobs = new Map();
+app.get('/api/ai/:id', (req, res) => res.json(aiJobs.get(req.params.id) || { status: 'none', ai: null }));
+
 // 1) the (already cropped / adjusted) photo -> job, auto subject, AI suggestions
 app.post('/api/prepare', upload.single('photo'), wrap(async (req, res) => {
   if (!req.file) throw Object.assign(new Error('No photo uploaded'), { status: 400 });
   const id = req.jobId, t0 = Date.now();
-  const [prep, ai] = await Promise.all([
-    worker.call('prepare', { dir: jobDir(id) }),
-    analyze(fs.readFileSync(req.file.path))
-  ]);
-  console.log(`[job ${id}] prepared ${prep.width}x${prep.height} subject=${prep.coverage} ai=${ai ? ai.subject : 'n/a'} ${Date.now() - t0}ms`);
-  res.json({ jobId: id, ...prep, overlay: `/api/overlay/${id}?v=${prep.ver}`, ai });
+  const buf = fs.readFileSync(req.file.path);
+  aiJobs.set(id, { status: 'pending', ai: null });
+  analyze(buf).then(ai => { aiJobs.set(id, { status: 'done', ai }); console.log(`[job ${id}] ai=${ai ? ai.subject : 'n/a'} ${Date.now() - t0}ms`); });   // runs in the background
+  const prep = await worker.call('prepare', { dir: jobDir(id) });
+  console.log(`[job ${id}] prepared ${prep.width}x${prep.height} subject=${prep.coverage} ${Date.now() - t0}ms`);
+  res.json({ jobId: id, ...prep, overlay: `/api/overlay/${id}?v=${prep.ver}`, ai: null });
 }));
 
 app.get('/api/overlay/:id', (req, res) => {
@@ -134,11 +137,20 @@ app.post('/api/render', wrap(async (req, res) => {
   const r = await worker.call('render', {
     dir: jobDir(id), outbase: path.join(OUTPUT_DIR, base),
     detail: num(b.detail, 50), weightMm: num(b.weightMm, 0.4), cleanup: num(b.cleanup, 35),
-    background: num(b.background, 0), sizeIn: num(b.sizeIn, 5), mirror: !!b.mirror
+    background: num(b.background, 0), sizeIn: num(b.sizeIn, 5), mirror: !!b.mirror,
+    smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0)
   });
   fs.readdir(OUTPUT_DIR, (_e, files) => (files || []).filter(f => f.startsWith(id + '-') && !f.startsWith(base) && Date.now() - fs.statSync(path.join(OUTPUT_DIR, f)).mtimeMs > 60000)
     .forEach(f => fs.unlink(path.join(OUTPUT_DIR, f), () => {})));
   res.json({ success: true, jobId: id, files: { png: `/output/${base}.png`, pdf: `/output/${base}.pdf` }, ...r, png: undefined, pdf: undefined });
+}));
+
+// save the pre-processed photo (crop/rotate/levels from the browser + the smoothing filters)
+app.post('/api/filtered', wrap(async (req, res) => {
+  const id = need(req), b = req.body, num = (v, d) => Number.isFinite(+v) ? Math.min(100, Math.max(0, +v)) : d;
+  const out = path.join(jobDir(id), 'filtered.jpg');
+  await worker.call('filtered', { dir: jobDir(id), out, smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0) });
+  res.download(out, 'tattoo-photo-prepared.jpg');
 }));
 
 app.use((err, _q, res, _n) => res.status(err.status || 400).json({ error: err.message }));
