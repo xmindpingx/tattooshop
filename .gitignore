@@ -10,3 +10,5 @@ node_modules/
 output/
 uploads/
 venv/
+venv-gen/
+venv-diff/

@@ -138,7 +138,8 @@ app.post('/api/render', wrap(async (req, res) => {
     dir: jobDir(id), outbase: path.join(OUTPUT_DIR, base),
     detail: num(b.detail, 50), weightMm: num(b.weightMm, 0.4), cleanup: num(b.cleanup, 35),
     background: num(b.background, 0), sizeIn: num(b.sizeIn, 5), mirror: !!b.mirror,
-    smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0)
+    smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0),
+    fills: num(b.fills, 0), shadows: num(b.shadows, 0), varw: num(b.varw, 0)
   });
   fs.readdir(OUTPUT_DIR, (_e, files) => (files || []).filter(f => f.startsWith(id + '-') && !f.startsWith(base) && Date.now() - fs.statSync(path.join(OUTPUT_DIR, f)).mtimeMs > 60000)
     .forEach(f => fs.unlink(path.join(OUTPUT_DIR, f), () => {})));
@@ -151,6 +152,97 @@ app.post('/api/filtered', wrap(async (req, res) => {
   const out = path.join(jobDir(id), 'filtered.jpg');
   await worker.call('filtered', { dir: jobDir(id), out, smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0) });
   res.download(out, 'tattoo-photo-prepared.jpg');
+}));
+
+
+// ─── AI redraw (SDXL + tattoo LoRA + ControlNet, AMD GPU) ───────────────────
+class GenWorker {
+  constructor() { this.proc = null; this.pending = new Map(); this.seq = 0; this.idle = null; this.busy = false; }
+  available() { return fs.existsSync(path.join(__dirname, 'models/gen/tattoo-lora/SDXL-tattoo-Lora.safetensors')) && fs.existsSync(path.join(__dirname, 'models/gen/sdxl/unet/diffusion_pytorch_model.fp16.safetensors')) && fs.existsSync(path.join(__dirname, 'venv-gen/bin/python')); }
+  ensure() {
+    if (this.proc) return;
+    this.proc = spawn(path.join(__dirname, 'venv-gen/bin/python'), ['-u', path.join(__dirname, 'gen_worker.py')], { stdio: ['pipe', 'pipe', 'pipe'] });
+    readline.createInterface({ input: this.proc.stdout }).on('line', line => {
+      let m; try { m = JSON.parse(line); } catch { return; }
+      const p = this.pending.get(m.id); if (!p) return; this.pending.delete(m.id);
+      m.ok ? p.resolve(m.result) : p.reject(new Error(m.error || 'generator error'));
+    });
+    this.proc.stderr.on('data', d => { const t = String(d); if (!/Warning|warn/i.test(t)) process.stderr.write('[gen] ' + t); });
+    this.proc.on('exit', code => {
+      console.warn('[gen] exited', code); this.proc = null;
+      for (const [, p] of this.pending) p.reject(new Error('The image generator stopped, please try again'));
+      this.pending.clear();
+    });
+  }
+  stop() { if (this.proc) { this.proc.kill('SIGKILL'); this.proc = null; } }
+  call(cmd, args, timeoutMs = 420000) {
+    if (this.busy) return Promise.reject(Object.assign(new Error('The AI generator is busy with another job, try again in a minute'), { status: 503 }));
+    this.busy = true; clearTimeout(this.idle); this.ensure();
+    return new Promise((resolve, reject) => {
+      const id = ++this.seq;
+      const done = () => { this.busy = false; clearTimeout(t); this.idle = setTimeout(() => this.stop(), 8 * 60e3); };   // free the GPU when idle
+      const t = setTimeout(() => { this.pending.delete(id); this.stop(); this.busy = false; reject(new Error('The AI generator timed out')); }, timeoutMs);
+      this.pending.set(id, { resolve: v => { done(); resolve(v); }, reject: e => { done(); reject(e); } });
+      this.proc.stdin.write(JSON.stringify({ id, cmd, args }) + '\n');
+    });
+  }
+}
+const gen = new GenWorker();
+process.on('exit', () => gen.stop());
+const genJobs = new Map();
+
+const PROMPTS = {
+  stencil: {
+    scale: 0.95, guidance: 8.0,
+    positive: s => `professional tattoo flash art of ${s}, 2D flat illustration, thick bold black outer contour, solid black ink fills on eyebrows pupils nostrils shadows, clean crisp black lines only, pure white background, no shading no gradients no grey fills, bold traditional american flash sheet style, high contrast black on white, front view centered, print-ready stencil`,
+    negative: 'photograph, photorealistic, 3d render, 3d shading, gradient shading, grey background, grey fill, airbrushed, realistic skin texture, noise, grain, blur, color, colorful, background color, dark background, wrinkles, pores, stubble texture, shadows, ambient occlusion, watermark, signature, border, frame, extra decorations, cropped, sketch lines, pencil lines'
+  },
+  concept: {
+    scale: 0.5, guidance: 6.5,
+    positive: s => `concept art illustration of ${s}, tattoos and piercings clearly visible, detailed face, dramatic lighting, high quality digital painting, sharp focus, plain studio background`,
+    negative: 'blurry, lowres, deformed, bad anatomy, extra limbs, text, watermark, signature'
+  }
+};
+const clip = (v, n) => String(v || '').replace(/[^\w\s,.'-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+
+app.get('/api/gen/info', (_q, res) => res.json({ available: gen.available(), templates: { stencil: PROMPTS.stencil.positive('{subject}'), concept: PROMPTS.concept.positive('{subject}') } }));
+
+app.post('/api/gen/start', wrap(async (req, res) => {
+  if (!gen.available()) throw Object.assign(new Error('The AI redraw models are not installed on this server'), { status: 501 });
+  const id = need(req), b = req.body;
+  const mode = b.mode === 'concept' ? 'concept' : 'stencil', T = PROMPTS[mode];
+  const ai = (aiJobs.get(id) || {}).ai;
+  const subj = clip(b.subject, 80) || clip(ai && ai.subject, 80) || 'a person face';
+  const extra = clip(b.extra, 200);
+  const gid = uuidv4().slice(0, 8);
+  const out = path.join(jobDir(id), `gen_${gid}.png`);
+  const prompt = clip(b.prompt, 700) || (T.positive(subj) + (extra ? ', ' + extra : ''));
+  genJobs.set(gid, { status: 'running', mode, job: id, started: Date.now(), prompt });
+  axios.post(`${OLLAMA_URL}/api/generate`, { model: OLLAMA_MODEL, keep_alive: 0 }, { timeout: 15000 }).catch(() => {})     // free VRAM from the vision model
+    .then(() => new Promise(r => setTimeout(r, 1500)))
+    .then(() => gen.call('generate', { dir: jobDir(id), out, prompt, negative: T.negative, scale: T.scale, guidance: T.guidance, steps: 28, seed: Number.isFinite(+b.seed) ? +b.seed : null }))
+    .then(r => { genJobs.set(gid, { status: 'done', mode, job: id, image: `/api/gen/image/${id}/${gid}`, seconds: r.seconds, prompt }); console.log(`[gen ${gid}] ${mode} done in ${r.seconds}s`); })
+    .catch(e => { console.error('[gen]', e.message); genJobs.set(gid, { status: 'error', mode, job: id, error: e.message }); });
+  res.json({ genId: gid, mode, prompt });
+}));
+
+app.get('/api/gen/status/:gid', (req, res) => res.json(genJobs.get(req.params.gid) || { status: 'none' }));
+
+app.get('/api/gen/image/:id/:gid', (req, res) => {
+  if (!UUID_RE.test(req.params.id) || !/^[0-9a-f]{8}$/.test(req.params.gid)) return res.sendStatus(404);
+  res.sendFile(path.join(jobDir(req.params.id), `gen_${req.params.gid}.png`), e => e && !res.headersSent && res.sendStatus(404));
+});
+
+// turn an AI flash drawing into the print-ready 1-bit stencil
+app.post('/api/flash', wrap(async (req, res) => {
+  const id = need(req), b = req.body, n = ++renderN, num = (v, d) => Number.isFinite(+v) ? +v : d;
+  if (!/^[0-9a-f]{8}$/.test(b.genId || '')) throw Object.assign(new Error('No AI drawing selected'), { status: 400 });
+  const base = `${id}-f${n}`;
+  const r = await worker.call('flash', {
+    gen: path.join(jobDir(id), `gen_${b.genId}.png`), outbase: path.join(OUTPUT_DIR, base),
+    sizeIn: num(b.sizeIn, 5), black: num(b.black, 90), speck: num(b.speck, 35), shade: ['dots', 'lines'].includes(b.shade) ? b.shade : 'none', mirror: !!b.mirror
+  });
+  res.json({ success: true, jobId: id, files: { png: `/output/${base}.png`, pdf: `/output/${base}.pdf` }, ...r, png: undefined, pdf: undefined });
 }));
 
 app.use((err, _q, res, _n) => res.status(err.status || 400).json({ error: err.message }));

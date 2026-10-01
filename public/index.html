@@ -82,6 +82,7 @@ input[type=number] { width:84px; padding:7px 9px; background:var(--bg); border:1
 #post { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px; }
 #post .subj-row { display:flex; gap:12px; align-items:center; padding:10px; margin-bottom:14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
 #subj-thumb { width:96px; height:96px; object-fit:contain; background:#050505 center/contain no-repeat; border-radius:6px; flex:none; }
+#gen-prompt { width:100%; background:var(--bg); color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:9px 11px; font:inherit; font-size:.82rem; resize:vertical; }
 #simplify { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
 #simplify .top { margin-bottom:10px; } #simplify h3 { margin:0; font-size:.9rem; color:var(--accent); }
 #post .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
@@ -166,6 +167,19 @@ footer a { color:var(--accent); text-decoration:none; }
       <div class="ai-line" id="ai-line" hidden></div>
     </div>
 
+    <div class="row" id="method" hidden style="margin-top:4px"><label>Method</label>
+      <button class="chip active" data-m="trace" title="Fast. Traces the lines of your photo">Trace photo</button>
+      <button class="chip" data-m="ai" title="An AI model redraws your photo as bold tattoo flash (about a minute)">AI redraw (flash style)</button>
+    </div>
+    <div id="ai-opts" hidden>
+      <div class="row"><label>Goal</label>
+        <button class="chip active" data-g="stencil" title="Black-and-white flash linework you can print as a stencil">Stencil / flash for a tattoo artist</button>
+        <button class="chip" data-g="concept" title="A picture of a character who has tattoos. Not a printable stencil">Concept art (character with tattoos)</button>
+      </div>
+      <label for="gen-prompt" class="hint" style="display:block;margin:6px 0 4px">Prompt template. Edit freely; <b>{subject}</b> is replaced by what the AI sees in your photo.</label>
+      <textarea id="gen-prompt" rows="5"></textarea>
+      <p class="hint">Your face shape is kept with an edge guide made from your photo. First run loads the model (about a minute), then each drawing takes roughly a minute.</p>
+    </div>
     <div class="row" style="margin-top:4px"><label>Tattoo size</label>
       <input type="number" id="size-in" min="0.5" max="14" step="0.25" value="5"> <span class="hint" style="margin:0">in &nbsp;(<span id="size-cm">12.7</span> cm) &middot; the subject's longest side</span>
     </div>
@@ -186,12 +200,24 @@ footer a { color:var(--accent); text-decoration:none; }
   <p class="status" id="status">Upload a photo to get started.</p>
   <div id="placeholder">Your stencil appears here.<br>Afterwards you can fine-tune it with the sliders &mdash; including bringing back the background line work.</div>
   <div id="result" hidden>
-    <div class="preview-wrap"><img id="stencil-img" alt="Generated stencil"><div id="busy" hidden></div></div>
+    <div id="ai-draw" hidden>
+      <div class="subj-row"><img id="gen-img" alt="AI drawing" style="width:150px;height:150px;border-radius:6px;background:#fff;object-fit:contain;flex:none">
+        <div><b>AI drawing</b><div class="hint" style="margin:2px 0 8px" id="gen-note">The stencil below is made from this drawing.</div>
+          <button class="chip" id="gen-again">&#x21BA; New variation</button> <a class="chip" id="gen-dl" href="#" download="tattoo-ai-drawing.png" style="text-decoration:none">&#x2B07; Drawing</a></div></div>
+    </div>
+    <div class="preview-wrap" id="stencil-wrap"><img id="stencil-img" alt="Generated stencil"><div id="busy" hidden></div></div>
     <div class="dl-buttons">
       <a id="dl-png" class="dl-btn png" href="#" download="tattoo-stencil.png">&#x2B07; PNG (300 DPI)</a>
       <a id="dl-pdf" class="dl-btn pdf" href="#" download="tattoo-stencil.pdf">&#x2B07; PDF (print)</a>
     </div>
     <div id="info"></div>
+    <div id="post-ai" hidden style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px">
+      <div class="top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0;font-size:.9rem">AI stencil settings</h3></div>
+      <div class="slider"><label for="a-black">Black level</label><output id="o-black">90</output><input type="range" id="a-black" min="40" max="190" step="1" value="90"><small><span>Only the darkest</span><span>More becomes ink</span></small></div>
+      <div class="slider"><label for="a-speck">Remove small marks</label><output id="o-speck">35</output><input type="range" id="a-speck" min="0" max="100" step="1" value="35"><small><span>Keep everything</span><span>Cleaner</span></small></div>
+      <div class="row" id="a-shade"><label>Grey shading</label><button class="chip active" data-sh="none">None</button><button class="chip" data-sh="dots">Dots</button><button class="chip" data-sh="lines">Hatching</button></div>
+      <label class="check"><input type="checkbox" id="a-mirror"> Mirror image (for thermal transfer paper)</label>
+    </div>
     <div id="post">
       <div class="top"><h3>Post-processing</h3><button class="chip" id="post-reset">Reset</button></div>
       <div class="subj-row">
@@ -214,6 +240,12 @@ footer a { color:var(--accent); text-decoration:none; }
         <input type="range" id="p-cleanup" min="0" max="100" step="1" value="35"><small><span>Keep everything</span><span>Cleaner</span></small></div>
       <div class="slider"><label for="p-weightMm">Line weight</label><output id="v-weightMm">0.40 mm</output>
         <input type="range" id="p-weightMm" min="0.15" max="1.2" step="0.05" value="0.4"><small><span>Fine</span><span>Bold</span></small></div>
+      <div class="slider"><label for="p-varw">Variable line weight</label><output id="v-varw">0</output>
+        <input type="range" id="p-varw" min="0" max="100" step="5" value="0"><small><span>Uniform</span><span>Thick silhouette, thin interior</span></small></div>
+      <div class="slider"><label for="p-fills">Solid black fills</label><output id="v-fills">0</output>
+        <input type="range" id="p-fills" min="0" max="100" step="5" value="0"><small><span>Outlines only</span><span>Fill darkest areas</span></small></div>
+      <div class="slider"><label for="p-shadows">Shadow shapes</label><output id="v-shadows">0</output>
+        <input type="range" id="p-shadows" min="0" max="100" step="5" value="0"><small><span>Off</span><span>Outline shadow patches</span></small></div>
       <label class="check"><input type="checkbox" id="p-mirror"> Mirror image (for thermal transfer paper)</label>
       <div id="ai-tags"></div>
     </div>
@@ -226,7 +258,7 @@ footer a { color:var(--accent); text-decoration:none; }
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const DEFAULT_STYLE = { background:0, detail:50, cleanup:35, weightMm:0.4, mirror:false, smooth:0, texture:0, skin:0 };
+const DEFAULT_STYLE = { background:0, detail:50, cleanup:35, weightMm:0.4, mirror:false, smooth:0, texture:0, skin:0, varw:0, fills:0, shadows:0 };
 const S = { base:null, baseId:0, bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, tab:'adjust',
   job:null, points:[], mode:'pick', sizeIn:5, style:{...DEFAULT_STYLE}, styleTouched:false, hasStencil:false, prepCache:null };
 
@@ -475,7 +507,7 @@ $('#size-in').oninput = e => setSize(e.target.value);
 $$('#size-chips [data-s]').forEach(b => b.onclick = () => setSize(b.dataset.s, true));
 
 /* ───────── generate + live post-processing ───────── */
-const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm' };
+const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm', varw:v => v, fills:v => v, shadows:v => v };
 const FILTERS = { none:[0,0,0], skin:[60,0,0], beard:[0,45,0], portrait:[30,25,0], bold:[40,60,50] };
 // style presets, picked by testing on a real stubble/wrinkle portrait: [skin, smooth, texture, detail, cleanup]
 const PRESETS = { portrait:[30,25,0,55,50], beard:[0,45,0,60,60], minimal:[25,40,0,65,45], detailed:[0,20,0,50,70], original:[0,0,0,50,35] };
@@ -510,10 +542,10 @@ $('#save-prep').onclick = async () => {
 };
 function syncStyleUI() {
   syncFilterUI(); syncPresetUI();
-  for (const k of ['background', 'detail', 'cleanup', 'weightMm']) { $('#p-' + k).value = S.style[k]; $('#v-' + k).textContent = FMT[k](S.style[k]); }
+  for (const k of ['background', 'detail', 'cleanup', 'weightMm', 'varw', 'fills', 'shadows']) { $('#p-' + k).value = S.style[k]; $('#v-' + k).textContent = FMT[k](S.style[k]); }
   $('#p-mirror').checked = S.style.mirror;
 }
-for (const k of ['background', 'detail', 'cleanup', 'weightMm']) {
+for (const k of ['background', 'detail', 'cleanup', 'weightMm', 'varw', 'fills', 'shadows']) {
   $('#p-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; $('#v-' + k).textContent = FMT[k](S.style[k]); scheduleRender(250); };
 }
 $('#p-mirror').onchange = e => { S.style.mirror = e.target.checked; S.styleTouched = true; scheduleRender(50); };
@@ -553,6 +585,77 @@ $('#change-subject').onclick = async () => {
 };
 $('#subj-auto').onclick = () => act.autoSubject();
 syncStyleUI();
+
+/* ───────── AI redraw (SDXL flash style) ───────── */
+S.method = 'trace'; S.goal = 'stencil'; S.gen = null; S.aiStyle = { black:90, speck:35, shade:'none', mirror:false };
+let genInfo = null;
+fetch('/api/gen/info').then(r => r.json()).then(i => { genInfo = i; if (i.available) { $('#method').hidden = false; fillTemplate(); } }).catch(() => {});
+function fillTemplate() { if (genInfo && genInfo.templates) $('#gen-prompt').value = genInfo.templates[S.goal]; }
+function setMethod(m) {
+  S.method = m; $$('#method [data-m]').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  $('#ai-opts').hidden = m !== 'ai'; $('#gen-btn').textContent = m === 'ai' ? 'Draw with AI →' : 'Generate stencil →';
+  if (S.hasStencil) { $('#post').hidden = m === 'ai'; $('#post-ai').hidden = m !== 'ai'; }
+}
+$$('#method [data-m]').forEach(b => b.onclick = () => setMethod(b.dataset.m));
+$$('#ai-opts [data-g]').forEach(b => b.onclick = () => { S.goal = b.dataset.g; $$('#ai-opts [data-g]').forEach(x => x.classList.toggle('active', x === b)); fillTemplate(); });
+function syncAiUI() {
+  $('#o-black').textContent = S.aiStyle.black; $('#o-speck').textContent = S.aiStyle.speck; $('#a-mirror').checked = S.aiStyle.mirror;
+  $$('#a-shade [data-sh]').forEach(b => b.classList.toggle('active', b.dataset.sh === S.aiStyle.shade));
+}
+$('#a-black').oninput = e => { S.aiStyle.black = +e.target.value; syncAiUI(); scheduleFlash(250); };
+$('#a-speck').oninput = e => { S.aiStyle.speck = +e.target.value; syncAiUI(); scheduleFlash(250); };
+$('#a-mirror').onchange = e => { S.aiStyle.mirror = e.target.checked; scheduleFlash(50); };
+$$('#a-shade [data-sh]').forEach(b => b.onclick = () => { S.aiStyle.shade = b.dataset.sh; syncAiUI(); scheduleFlash(50); });
+let ftimer = null, flashing = false, flashAgain = false;
+function scheduleFlash(ms) { clearTimeout(ftimer); ftimer = setTimeout(runFlash, ms); }
+async function runFlash() {
+  if (!S.gen || S.gen.mode !== 'stencil') return;
+  if (flashing) { flashAgain = true; return; }
+  flashing = true;
+  try { do { flashAgain = false; await flashOnce(); } while (flashAgain); } catch (e) { say(e.message, 'error'); } finally { flashing = false; $('#busy').hidden = true; }
+}
+async function flashOnce() {
+  $('#busy').hidden = false;
+  const r = await api('/api/flash', { jobId:S.job.id, genId:S.gen.id, sizeIn:S.sizeIn, ...S.aiStyle });
+  await new Promise((res, rej) => { const im = new Image(); im.onload = () => { $('#stencil-img').src = im.src; res(); }; im.onerror = () => rej(new Error('Could not load the stencil image')); im.src = r.files.png; });
+  $('#dl-png').href = r.files.png; $('#dl-pdf').href = r.files.pdf;
+  const fit = r.fitScale < 0.995 ? `PDF is scaled to ${Math.round(r.fitScale * 100)}% to fit the page (the PNG is full size).` : `PDF prints at true size on US letter (${r.orientation}).`;
+  $('#info').innerHTML = `Stencil ${r.inches[0]} &times; ${r.inches[1]} in &middot; ink ${r.inkCoverage}% of the sheet &middot; ${fit}`;
+  say('Stencil ready. Adjust the black level, shading and marks below.', 'ok');
+}
+async function runAI() {
+  await ensurePrepared();
+  const subj = (S.job.ai && S.job.ai.subject) || 'a person\'s face';
+  const prompt = $('#gen-prompt').value.replace(/\{subject\}/g, subj);
+  const mode = S.goal;
+  bar(true); say('Starting the AI drawing…');
+  const st = await api('/api/gen/start', { jobId:S.job.id, mode, prompt });
+  const t0 = Date.now();
+  for (;;) {
+    await new Promise(r => setTimeout(r, 3000));
+    const d = await (await fetch('/api/gen/status/' + st.genId)).json();
+    if (d.status === 'error') throw new Error(d.error || 'The AI drawing failed');
+    if (d.status === 'none') throw new Error('The AI drawing was lost, please try again');
+    if (d.status === 'done') { S.gen = { id:st.genId, mode, image:d.image }; break; }
+    say(`Drawing with AI… ${Math.round((Date.now() - t0) / 1000)} s (the first run loads the model)`);
+    if (Date.now() - t0 > 540000) throw new Error('The AI drawing took too long');
+  }
+  $('#gen-img').src = S.gen.image; $('#gen-dl').href = S.gen.image; $('#ai-draw').hidden = false;
+  $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
+  const isStencil = mode === 'stencil';
+  $('#stencil-wrap').hidden = !isStencil; $('.dl-buttons').hidden = !isStencil; $('#info').hidden = !isStencil;
+  $('#post').hidden = true; $('#post-ai').hidden = !isStencil;
+  $('#gen-note').textContent = isStencil ? 'The stencil below is made from this drawing.' : 'Concept art. This is a picture, not a printable stencil.';
+  syncAiUI();
+  if (isStencil) await flashOnce(); else say('Concept art ready.', 'ok');
+}
+$('#gen-again').onclick = async () => { const b = $('#gen-again'); b.disabled = true; try { await runAI(); } catch (e) { say(e.message, 'error'); } finally { b.disabled = false; bar(false); } };
+const _genClick = $('#gen-btn').onclick;
+$('#gen-btn').onclick = async () => {
+  if (S.method !== 'ai') { $('#ai-draw').hidden = true; $('#stencil-wrap').hidden = false; $('.dl-buttons').hidden = false; $('#info').hidden = false; $('#post-ai').hidden = true; $('#post').hidden = false; return _genClick(); }
+  const b = $('#gen-btn'); b.disabled = true;
+  try { await runAI(); } catch (e) { say(e.message, 'error'); } finally { b.disabled = false; bar(false); }
+};
 </script>
 </body>
 </html>

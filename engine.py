@@ -18,7 +18,7 @@ from PIL import Image, ImageOps
 HERE   = os.path.dirname(os.path.abspath(__file__))
 MODELS = os.path.join(HERE, 'models')
 DPI      = 300
-MAX_SRC  = 2400     # cap for the prepared photo
+MAX_SRC  = 1500     # cap for the prepared photo (5x5" at 300 DPI, appropriate for small stencils)
 MAX_WORK = 4096     # long edge used while cleaning up lines
 MAX_OUT  = 7000     # longest edge of the delivered PNG
 MARGIN_IN = 0.12    # white border around the trimmed stencil
@@ -272,6 +272,19 @@ def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0):
     np.save(p, ink.astype(np.float16))
     return ink, box
 
+def tone_subject(d, src, mask, ver, smooth=0, texture=0, skin=0):
+    """Smoothed grayscale (0 dark .. 1 light) of the subject crop; used for solid fills and shadow shapes."""
+    box = padded_box(mask)
+    p = P(d, f'tone_{ver}_{int(smooth)}_{int(texture)}_{int(skin)}.npy')
+    if os.path.exists(p):
+        return np.load(p).astype(np.float32), box
+    y0, y1, x0, x1 = box
+    img = prefilter(src[y0:y1, x0:x1], max(smooth, 35), texture, skin)           # always de-speckle: stubble must not read as shadow
+    g = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
+    g = cv2.GaussianBlur(g, (0, 0), max(1.0, max(g.shape) * 0.004))
+    np.save(p, g.astype(np.float16))
+    return g, box
+
 def ink_full(d, src, smooth=0, texture=0, skin=0):
     p = P(d, f'ink_full_{int(smooth)}_{int(texture)}_{int(skin)}.npy')
     if os.path.exists(p):
@@ -282,9 +295,10 @@ def ink_full(d, src, smooth=0, texture=0, skin=0):
 
 
 # ───────────────────────────── render ─────────────────────────────
-def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, sizeIn=5.0, mirror=False, smooth=0, texture=0, skin=0):
+def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, sizeIn=5.0, mirror=False, smooth=0, texture=0, skin=0, fills=0, shadows=0, varw=0):
     T0 = time.time(); tm = {}
     detail, cleanup, background = [float(np.clip(v, 0, 100)) for v in (detail, cleanup, background)]
+    fills, shadows, varw = [float(np.clip(v, 0, 100)) for v in (fills, shadows, varw)]
     weightMm = float(np.clip(weightMm, 0.1, 2.0)); sizeIn = float(np.clip(sizeIn, 0.5, 14))
     meta = load_meta(dir); ver = meta.get('ver', 1)
     src = load_src(dir); H, W = src.shape[:2]
@@ -384,16 +398,67 @@ def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, 
         outline &= (near > ref * 0.006).astype(np.uint8)
         skel |= drop_fragments(outline, 0.01 * ref, 0.006 * ref)
 
+    # tone: solid black for the darkest features (brows, pupils, nostrils, dark patches) and outlined shadow shapes
+    solid = np.zeros_like(skel); thin = np.zeros_like(skel)
+    if (fills > 0 or shadows > 0) and isolated:
+        g, _b = tone_subject(dir, src, mask, ver, smooth, texture, skin)
+        gr = cv2.resize(g, (ws, hs), interpolation=cv2.INTER_AREA)
+        gc = np.ones((Ho, Wo), np.float32)
+        gc[ya:yb, xa:xb] = gr[ya - oy:yb - oy, xa - ox:xb - ox]
+        inner = cv2.erode(m, disk(ref * 0.03))                                     # keep fills off the silhouette edge
+        vals = gc[inner > 0]
+        if vals.size > 100:
+            if fills > 0:
+                t = np.percentile(vals, 1.5 + 9.0 * fills / 100.0)
+                dk = ((gc < t) & (inner > 0)).astype(np.uint8)
+                dk = cv2.morphologyEx(dk, cv2.MORPH_OPEN, disk(max(2, ref * 0.006)))
+                dk = cv2.morphologyEx(dk, cv2.MORPH_CLOSE, disk(max(2, ref * 0.008)))
+                dk = drop_small(dk, (0.012 * ref) ** 2)
+                nlab, lab, st, _c = cv2.connectedComponentsWithStats(dk, connectivity=8)
+                for i in range(1, nlab):                                           # one huge dark region is a shadow, not a feature
+                    if st[i, cv2.CC_STAT_AREA] > (0.22 * ref) ** 2:
+                        dk[lab == i] = 0
+                solid = dk
+            if shadows > 0:
+                tsh = np.percentile(vals, 12 + 26 * shadows / 100.0)
+                sh = ((gc < tsh) & (inner > 0)).astype(np.uint8)
+                sh = cv2.morphologyEx(sh, cv2.MORPH_OPEN, disk(max(2, ref * 0.012)))
+                sh = cv2.morphologyEx(sh, cv2.MORPH_CLOSE, disk(max(2, ref * 0.02)))
+                sh = drop_small(sh, (0.05 * ref) ** 2)
+                edge = (sh - cv2.erode(sh, disk(3))) > 0
+                edge = edge.astype(np.uint8)
+                near = cv2.distanceTransform((1 - (skel | cv2.dilate(solid, disk(3)))).astype(np.uint8), cv2.DIST_L2, 3)
+                edge &= (near > ref * 0.014).astype(np.uint8)                     # skip where a line already is
+                edge = (cv2.ximgproc.thinning(cv2.dilate(edge, disk(3)) * 255, thinningType=cv2.ximgproc.THINNING_ZHANGSUEN) > 0).astype(np.uint8)
+                edge = drop_fragments(edge, 0.05 * ref, 0.03 * ref)
+                thin = edge; skel = skel | edge
+        if solid.any():
+            skel &= 1 - cv2.dilate(solid, disk(max(3, ref * 0.01)))                # no scribbles inside a solid fill
+
     # one uniform pen width, in real millimetres: smoothed centre-lines drawn crisp at final resolution
     pen = max(4.0, weightMm / 25.4 * dpi)                      # final px; never thinner than ~0.34 mm @300dpi so nothing vanishes
     Hf, Wf = round(Ho * f), round(Wo * f)
     canvas8 = np.zeros((Hf, Wf), np.uint8)
+    vw = varw / 100.0
+    din = cv2.distanceTransform(mp, cv2.DIST_L2, 3)[pad:-pad, pad:-pad] if isolated else None   # distance inside the silhouette
     cs, _ = cv2.findContours(skel.astype(np.uint8), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     SH = 4
     for c in cs:
         pts = c[:, 0, :].astype(np.float32)
         n = len(pts)
-        if n >= 9:                                             # circular moving average removes pixel staircase
+        fac = 1.0
+        if vw > 0:
+            xi, yi = np.clip(pts[:, 0].astype(int), 0, Wo - 1), np.clip(pts[:, 1].astype(int), 0, Ho - 1)
+            Lc = n / 2.0
+            if din is not None and (din[yi, xi] < ref * 0.025).mean() > 0.5:
+                raw = 2.6                                                  # silhouette
+            elif thin[yi, xi].mean() > 0.5:
+                raw = 0.7                                                  # shadow shapes
+            else:
+                raw = 0.8 + 0.9 * min(1.0, Lc / (0.30 * ref))              # short = fine, long = medium/bold
+            fac = 1.0 + vw * (raw - 1.0)
+        th = max(4.0, pen * fac) if vw == 0 else max(4.0, pen * fac)
+        if n >= 9:                                                         # circular moving average removes pixel staircase
             win = min(n // 2 * 2 - 1, 9)
             ker = np.ones(win, np.float32) / win
             pad_ = win // 2
@@ -401,9 +466,12 @@ def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, 
             pts = np.stack([np.convolve(ext[:, 0], ker, 'valid'), np.convolve(ext[:, 1], ker, 'valid')], 1)
         q = np.round((pts + 0.5) * f * (1 << SH)).astype(np.int32).reshape(-1, 1, 2)
         if n == 1:
-            cv2.circle(canvas8, tuple(int(v) for v in ((pts[0] + 0.5) * f)), max(1, round(pen / 2)), 255, -1, cv2.LINE_AA)
+            cv2.circle(canvas8, tuple(int(v) for v in ((pts[0] + 0.5) * f)), max(1, round(th / 2)), 255, -1, cv2.LINE_AA)
         else:
-            cv2.polylines(canvas8, [q], True, 255, max(1, round(pen)), cv2.LINE_AA, SH)
+            cv2.polylines(canvas8, [q], True, 255, max(1, round(th)), cv2.LINE_AA, SH)
+    if solid.any():                                                        # solid fills, smooth edges
+        sc = cv2.GaussianBlur(cv2.resize(solid.astype(np.float32), (Wf, Hf), interpolation=cv2.INTER_LINEAR), (0, 0), max(1.0, f * 1.2))
+        canvas8 = np.maximum(canvas8, ((sc > 0.5) * 255).astype(np.uint8))
     ink = canvas8 > 127
     rows, cols = np.where(ink.any(1))[0], np.where(ink.any(0))[0]
     if len(rows) == 0:
@@ -443,3 +511,73 @@ def cmd_filtered(dir, out, smooth=0, texture=0, skin=0):
         img = cv2.resize(img, (W, H), interpolation=cv2.INTER_CUBIC)
     Image.fromarray(img).save(out, 'JPEG', quality=95)
     return {'file': out, 'width': W, 'height': H}
+
+
+def _export_bw(out, dpi, outbase, sizeIn, t0, extra=None):
+    png, pdf = outbase + '.png', outbase + '.pdf'
+    Image.fromarray(out).convert('1', dither=Image.Dither.NONE).save(png, 'PNG', dpi=(round(dpi), round(dpi)), optimize=True)
+    h_px, w_px = out.shape
+    wi, hi = w_px / dpi, h_px / dpi
+    fit, pw, ph = max(((min(1.0, (a - 0.5) / wi, (b - 0.5) / hi), a, b) for a, b in ((8.5, 11), (11, 8.5))), key=lambda t: t[0])
+    page = Image.new('1', (round(pw * 300), round(ph * 300)), 1)
+    sw, sh = max(1, round(w_px * fit * 300 / dpi)), max(1, round(h_px * fit * 300 / dpi))
+    sc = Image.fromarray(out).resize((sw, sh), Image.LANCZOS).point(lambda v: 255 if v > 127 else 0).convert('1', dither=Image.Dither.NONE)
+    page.paste(sc, ((page.width - sw) // 2, (page.height - sh) // 2))
+    page.save(pdf, 'PDF', resolution=300)
+    r = {'png': png, 'pdf': pdf, 'inches': [round(wi, 2), round(hi, 2)], 'subjectInches': round(sizeIn, 2),
+         'inkCoverage': round(float((out < 128).mean()) * 100, 2), 'fitScale': round(fit, 3),
+         'orientation': 'landscape' if pw > ph else 'portrait', 'isolated': True, 'timing': {'total': round(time.time() - t0, 2)}}
+    r.update(extra or {})
+    return r
+
+
+def cmd_flash(gen, outbase, sizeIn=5.0, black=90, shade='none', mirror=False, speck=35):
+    """Turn an AI-drawn flash image (black ink + grey shading on white) into a print-ready 1-bit stencil.
+    black 30..200: how dark a pixel must be to become ink. shade: none | dots | lines for the grey tones."""
+    t0 = time.time()
+    sizeIn = float(np.clip(sizeIn, 0.5, 14)); black = int(np.clip(black, 30, 200)); speck = float(np.clip(speck, 0, 100))
+    g = np.array(Image.open(gen).convert('L'))
+    H, W = g.shape
+    dpi = float(DPI)
+    k = sizeIn * dpi / max(H, W)
+    if max(H, W) * k > MAX_OUT:
+        k = MAX_OUT / max(H, W); dpi = k * max(H, W) / sizeIn
+    gs = cv2.resize(g, (round(W * k), round(H * k)), interpolation=cv2.INTER_CUBIC)
+    gs = cv2.GaussianBlur(gs, (0, 0), max(1.0, k * 0.6))
+    L = max(gs.shape)
+    ink = (gs < black).astype(np.uint8)
+    ink = drop_small(ink, (L * (0.0015 + 0.004 * speck / 100.0)) ** 2)                       # specks
+    inv = drop_small(1 - ink, (L * 0.0012) ** 2)                                              # pin-holes inside solids
+    ink = 1 - inv
+    pen = max(4, int(round(0.34 / 25.4 * dpi)))                                               # nothing thinner than ~0.34 mm
+    opened = cv2.morphologyEx(ink, cv2.MORPH_OPEN, disk(pen + 1))
+    thin = ink & (1 - cv2.dilate(opened, disk(pen + 1)))
+    if thin.any():
+        ink = ink | cv2.dilate(thin, disk(pen + 1))
+    if shade in ('dots', 'lines'):
+        mid = ((gs >= black) & (gs < 205)).astype(np.uint8)
+        mid = cv2.morphologyEx(mid, cv2.MORPH_OPEN, disk(max(3, L * 0.006)))
+        mid = drop_small(mid, (L * 0.03) ** 2) & (1 - cv2.dilate(ink, disk(pen)))
+        if mid.any():
+            sp = max(10, int(round(L * 0.011)))
+            layer = np.zeros_like(ink)
+            if shade == 'dots':
+                for y in range(sp // 2, gs.shape[0], sp):
+                    for x in range(sp // 2, gs.shape[1], sp):
+                        if mid[y, x]:
+                            dark = (205 - gs[y, x]) / (205.0 - black)
+                            cv2.circle(layer, (x, y), int(round(pen * (0.45 + 0.55 * min(1.0, dark)))), 1, -1)
+            else:
+                yy, xx = np.mgrid[0:gs.shape[0], 0:gs.shape[1]]
+                layer = (((xx + yy) % (sp * 1.4)) < pen * 0.8).astype(np.uint8)
+            ink = ink | (layer & mid)
+    ink = cv2.GaussianBlur(ink.astype(np.float32), (0, 0), 0.8) > 0.5                          # smooth stair-steps
+    rows, cols = np.where(ink.any(1))[0], np.where(ink.any(0))[0]
+    if len(rows) == 0:
+        raise ValueError('The AI drawing came out empty. Try again or lower the black level.')
+    mg = int(MARGIN_IN * dpi)
+    ink = np.pad(ink[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1], mg)
+    out = np.where(ink, 0, 255).astype(np.uint8)
+    if mirror:
+        out = np.ascontiguousarray(out[:, ::-1])
+    return _export_bw(out, dpi, outbase, sizeIn, t0)
