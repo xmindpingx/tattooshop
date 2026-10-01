@@ -258,7 +258,7 @@ footer a { color:var(--accent); text-decoration:none; }
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const DEFAULT_STYLE = { background:0, detail:50, cleanup:35, weightMm:0.4, mirror:false, smooth:0, texture:0, skin:0, varw:0, fills:0, shadows:0 };
+const DEFAULT_STYLE = { background:0, detail:45, cleanup:50, weightMm:0.45, mirror:false, smooth:30, texture:0, skin:0, varw:0, fills:0, shadows:0 };
 const S = { base:null, baseId:0, bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, tab:'adjust',
   job:null, points:[], mode:'pick', sizeIn:5, style:{...DEFAULT_STYLE}, styleTouched:false, hasStencil:false, prepCache:null };
 

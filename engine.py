@@ -297,9 +297,10 @@ def ink_full(d, src, smooth=0, texture=0, skin=0):
 
 
 # ───────────────────────────── render ─────────────────────────────
-def cmd_render(dir, outbase, detail=50, weightMm=0.4, cleanup=35, background=0, sizeIn=5.0, mirror=False, smooth=0, texture=0, skin=0, fills=0, shadows=0, varw=0):
+def cmd_render(dir, outbase, detail=45, weightMm=0.45, cleanup=50, background=0, sizeIn=5.0, mirror=False, smooth=30, texture=0, skin=0, fills=0, shadows=0, varw=0):
     T0 = time.time(); tm = {}
     detail, cleanup, background = [float(np.clip(v, 0, 100)) for v in (detail, cleanup, background)]
+    smooth = float(np.clip(max(smooth, 20), 0, 100))   # never run the line model on completely unfiltered skin
     fills, shadows, varw = [float(np.clip(v, 0, 100)) for v in (fills, shadows, varw)]
     weightMm = float(np.clip(weightMm, 0.1, 2.0)); sizeIn = float(np.clip(sizeIn, 0.5, 14))
     meta = load_meta(dir); ver = meta.get('ver', 1)
