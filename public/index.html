@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TattooShop — AI Stencil Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0a; --surface: #141414; --border: #2a2a2a;
+      --ink: #ffffff; --muted: #888; --accent: #e8c84a; --accent2: #c0392b;
+      --radius: 12px;
+    }
+    body { background:var(--bg); color:var(--ink); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:18px 32px; display:flex; align-items:center; gap:16px; }
+    .logo-wrap { display:flex; align-items:center; gap:10px; }
+    .logo-icon { width:38px; height:38px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    header h1 { font-size:1.45rem; font-weight:700; letter-spacing:-.5px; }
+    header span.sub { margin-left:auto; color:var(--muted); font-size:.82rem; }
+    main { flex:1; max-width:1100px; margin:0 auto; padding:40px 24px; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+    @media (max-width:720px) { main { grid-template-columns:1fr; } }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:28px; }
+    .card h2 { font-size:1rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:20px; }
+    #drop-zone { border:2px dashed var(--border); border-radius:10px; padding:48px 20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+    #drop-zone:hover, #drop-zone.dragover { border-color:var(--accent); background:rgba(232,200,74,.04); }
+    #drop-zone .icon { font-size:3rem; opacity:.5; }
+    #drop-zone p { color:var(--muted); font-size:.9rem; line-height:1.6; }
+    #drop-zone strong { color:var(--ink); }
+    #file-input { display:none; }
+    #preview-img { max-width:100%; max-height:280px; border-radius:6px; display:none; object-fit:contain; }
+    .settings-grid { display:grid; gap:16px; }
+    .setting-row label { display:block; font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
+    .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-group button { flex:1; padding:9px 12px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:7px; cursor:pointer; font-size:.85rem; transition:all .15s; white-space:nowrap; }
+    .btn-group button.active, .btn-group button:hover { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.08); }
+    #gen-btn { width:100%; padding:15px; margin-top:20px; background:var(--accent); color:#000; border:none; border-radius:var(--radius); font-size:1rem; font-weight:700; letter-spacing:.04em; cursor:pointer; transition:opacity .2s,transform .1s; text-transform:uppercase; }
+    #gen-btn:hover:not(:disabled) { opacity:.9; }
+    #gen-btn:active:not(:disabled) { transform:scale(.98); }
+    #gen-btn:disabled { opacity:.45; cursor:not-allowed; }
+    .ai-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(232,200,74,.12); border:1px solid rgba(232,200,74,.3); border-radius:20px; padding:4px 12px; font-size:.75rem; color:var(--accent); margin-bottom:16px; }
+    .ai-badge .dot { width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+    #status-area { min-height:64px; display:flex; flex-direction:column; gap:10px; }
+    .progress-bar-wrap { background:var(--border); border-radius:4px; height:6px; overflow:hidden; display:none; }
+    .progress-bar { height:100%; background:var(--accent); border-radius:4px; transition:width .3s; width:0%; }
+    .status-msg { font-size:.88rem; color:var(--muted); }
+    .status-msg.error { color:#e74c3c; }
+    .status-msg.success { color:#27ae60; }
+    #output-area { display:none; }
+    .stencil-preview { width:100%; border-radius:8px; border:1px solid var(--border); background:#fff; margin-bottom:16px; image-rendering:high-quality; }
+    .dl-buttons { display:flex; gap:12px; }
+    .dl-btn { flex:1; padding:12px; border-radius:8px; text-align:center; text-decoration:none; font-size:.9rem; font-weight:600; transition:opacity .15s; display:flex; align-items:center; justify-content:center; gap:7px; }
+    .dl-btn:hover { opacity:.85; }
+    .dl-btn.png { background:var(--accent); color:#000; }
+    .dl-btn.pdf { background:var(--accent2); color:#fff; }
+    #ai-panel { display:none; margin-top:16px; background:rgba(232,200,74,.05); border:1px solid rgba(232,200,74,.2); border-radius:8px; padding:14px 16px; font-size:.82rem; }
+    #ai-panel h4 { color:var(--accent); margin-bottom:10px; font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; }
+    .ai-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .ai-tag { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:.75rem; color:var(--muted); }
+    .ai-tag.highlight { color:var(--accent); border-color:rgba(232,200,74,.4); }
+    footer { border-top:1px solid var(--border); padding:14px 24px; text-align:center; color:var(--muted); font-size:.78rem; }
+    footer a { color:var(--accent); text-decoration:none; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo-wrap">
+    <div class="logo-icon">&#x270B;</div>
+    <h1>TattooShop <span style="color:var(--accent)">AI</span></h1>
+  </div>
+  <span class="sub">Powered by Ollama &middot; qwen3-vl &middot; OpenCV</span>
+</header>
+
+<main>
+  <section class="card">
+    <h2>&#x1F3A8; Upload Photo</h2>
+    <div class="ai-badge"><span class="dot"></span>AI Vision Active &mdash; qwen3-vl:8b</div>
+    <div id="drop-zone">
+      <img id="preview-img" alt="preview">
+      <span class="icon" id="drop-icon">&#x1F4F7;</span>
+      <p id="drop-label"><strong>Drag &amp; drop</strong> your photo here<br>or <strong>click to browse</strong><br><small style="font-size:.78rem;opacity:.6">JPG &middot; PNG &middot; WEBP &middot; up to 20 MB</small></p>
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+
+    <div class="settings-grid" style="margin-top:24px">
+      <div class="setting-row">
+        <label>Line Weight</label>
+        <div class="btn-group" id="lw-group">
+          <button data-val="thin">Thin</button>
+          <button data-val="medium" class="active">Medium</button>
+          <button data-val="bold">Bold</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>Shading Density</label>
+        <div class="btn-group" id="sd-group">
+          <button data-val="minimal">Minimal</button>
+          <button data-val="moderate" class="active">Moderate</button>
+          <button data-val="heavy">Heavy</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>Line Complexity</label>
+        <div class="btn-group" id="lc-group">
+          <button data-val="simple">Simple</button>
+          <button data-val="medium" class="active">Medium</button>
+          <button data-val="complex">Complex</button>
+        </div>
+      </div>
+    </div>
+
+    <p style="color:var(--muted);font-size:.78rem;margin-top:14px;line-height:1.6">
+      AI auto-detects your image type and overrides these settings for best results. Manual settings apply as fallback.
+    </p>
+    <button id="gen-btn" disabled>Generate Stencil &rarr;</button>
+  </section>
+
+  <section class="card">
+    <h2>&#x1F5BC; Stencil Output</h2>
+    <div id="status-area">
+      <div class="progress-bar-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <p class="status-msg" id="status-msg">Upload a photo to get started.</p>
+    </div>
+    <div id="output-area">
+      <img id="stencil-img" class="stencil-preview" alt="Generated stencil">
+      <div class="dl-buttons" style="margin-bottom:16px">
+        <a id="dl-png" class="dl-btn png" href="#" download>&#x2B07; PNG (300 DPI)</a>
+        <a id="dl-pdf" class="dl-btn pdf" href="#" download>&#x2B07; PDF (Print)</a>
+      </div>
+      <div id="ai-panel">
+        <h4>&#x1F916; AI Vision Analysis</h4>
+        <div class="ai-tags" id="ai-tags"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <a href="https://tat.signaturediversified.com">tat.signaturediversified.com</a>
+  &nbsp;&middot;&nbsp; AI Tattoo Stencil Generator &nbsp;&middot;&nbsp;
+  Powered by <a href="https://ollama.com">Ollama</a> + OpenCV
+</footer>
+
+<script>
+let selectedFile = null;
+let settings = { lineWeight:'medium', shadingDensity:'moderate', lineComplexity:'medium' };
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const previewImg = document.getElementById('preview-img');
+const genBtn = document.getElementById('gen-btn');
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+function loadFile(file) {
+  if (!file || !/^image\//.test(file.type)) return;
+  selectedFile = file;
+  previewImg.src = URL.createObjectURL(file);
+  previewImg.style.display = 'block';
+  document.getElementById('drop-icon').style.display = 'none';
+  document.getElementById('drop-label').style.display = 'none';
+  genBtn.disabled = false;
+  setStatus('Ready — click Generate Stencil', '');
+}
+
+['lw','sd','lc'].forEach(prefix => {
+  const key = {lw:'lineWeight',sd:'shadingDensity',lc:'lineComplexity'}[prefix];
+  document.getElementById(`${prefix}-group`).addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll(`#${prefix}-group button`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings[key] = btn.dataset.val;
+  });
+});
+
+genBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  genBtn.disabled = true;
+  document.getElementById('output-area').style.display = 'none';
+  setStatus('AI analyzing your image...', '');
+  setProgress(10);
+
+  const fd = new FormData();
+  fd.append('photo', selectedFile);
+  fd.append('lineWeight', settings.lineWeight);
+  fd.append('shadingDensity', settings.shadingDensity);
+  fd.append('lineComplexity', settings.lineComplexity);
+
+  const timers = [
+    setTimeout(() => { setStatus('Detecting edges and line weights...'); setProgress(35); }, 2000),
+    setTimeout(() => { setStatus('Applying stencil processing...'); setProgress(60); }, 5000),
+    setTimeout(() => { setStatus('Finalizing output...'); setProgress(85); }, 9000),
+  ];
+
+  try {
+    const resp = await fetch('/api/generate', { method:'POST', body:fd });
+    timers.forEach(clearTimeout);
+    const data = await resp.json();
+    if (!resp.ok || !data.success) throw new Error(data.error || 'Server error');
+    setProgress(100);
+    setStatus('Stencil ready!', 'success');
+    const stencilImg = document.getElementById('stencil-img');
+    stencilImg.src = data.files.png + '?t=' + Date.now();
+    document.getElementById('dl-png').href = data.files.png;
+    document.getElementById('dl-png').download = 'tattoo-stencil.png';
+    document.getElementById('dl-pdf').href = data.files.pdf;
+    document.getElementById('dl-pdf').download = 'tattoo-stencil.pdf';
+    document.getElementById('output-area').style.display = 'block';
+    if (data.aiAnalysis) {
+      const panel = document.getElementById('ai-panel');
+      const tags = document.getElementById('ai-tags');
+      panel.style.display = 'block';
+      tags.innerHTML = '';
+      const ai = data.aiAnalysis;
+      [
+        {label:`Subject: ${ai.subject}`, hi:true},
+        {label:`Lines: ${ai.lineComplexity}`},
+        {label:`Shading: ${ai.shadingDensity}`},
+        {label:`Weight: ${ai.lineWeight}`, hi:true},
+        ...(ai.preserveDetails||[]).map(d=>({label:d}))
+      ].forEach(({label,hi}) => {
+        const t = document.createElement('span');
+        t.className = `ai-tag${hi?' highlight':''}`;
+        t.textContent = label;
+        tags.appendChild(t);
+      });
+    }
+  } catch(err) {
+    timers.forEach(clearTimeout);
+    setStatus('Error: ' + err.message, 'error');
+    setProgress(0);
+  } finally {
+    genBtn.disabled = false;
+  }
+});
+
+function setStatus(msg, cls='') {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + cls;
+}
+function setProgress(pct) {
+  document.getElementById('progress-wrap').style.display = pct > 0 ? 'block' : 'none';
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+</script>
+</body>
+</html>
