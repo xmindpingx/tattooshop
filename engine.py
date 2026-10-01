@@ -219,18 +219,20 @@ def prefilter(rgb, smooth=0, texture=0, skin=0):
         sm = cv2.medianBlur(sm, 2 * max(1, round(L * (0.003 + 0.006 * a))) + 1)
         hh, ww = sm.shape[:2]
         sm = cv2.resize(sm, (max(8, ww // 2), max(8, hh // 2)), interpolation=cv2.INTER_AREA)   # half-res = 4x faster
-        for _ in range(2 + int(a * 3)):                                  # flatten wrinkles but keep real edges
-            sm = cv2.bilateralFilter(sm, 0, 25 + 45 * a, max(3.0, L * (0.005 + 0.0125 * a)))
+        for _ in range(1 + int(a * 2)):                                  # flatten wrinkles but keep real edges
+            sm = cv2.bilateralFilter(sm, 0, 18 + 30 * a, max(3.0, L * (0.004 + 0.008 * a)))  # was 25+45, 0.005+0.0125
         sm = cv2.resize(sm, (ww, hh), interpolation=cv2.INTER_LINEAR)
         img = (sm * m + img * (1 - m)).astype(np.uint8)
     if smooth > 0:
         a = smooth / 100.0
-        r = max(1, round(L * (0.0015 + 0.0075 * a)))                    # speck size removed (px)
+        # speck/stubble removal: keep kernel small so tattoo lines and edges survive
+        # at smooth=45: r=2px disk, 3px median — fills hair-pore specks without smearing features
+        r = max(1, round(L * (0.0010 + 0.0030 * a)))                    # was 0.0015+0.0075 — halved
         closed = cv2.morphologyEx(img, cv2.MORPH_CLOSE, disk(r))        # fills dark specks smaller than the disk
-        m = (2 * round(L * (0.001 + 0.005 * a))) + 1
+        m = (2 * round(L * (0.0005 + 0.0025 * a))) + 1                  # was 0.001+0.005 — halved
         img = cv2.medianBlur(closed, max(3, m))
-        for _ in range(1 + int(a * 3)):
-            img = cv2.bilateralFilter(img, 0, 18 + 40 * a, max(3.0, L * (0.004 + 0.012 * a)))
+        for _ in range(1 + int(a * 2)):                                  # was a*3 — fewer passes at high values
+            img = cv2.bilateralFilter(img, 0, 12 + 28 * a, max(3.0, L * (0.003 + 0.008 * a)))  # was 18+40, 0.004+0.012
     if texture > 0:
         a = texture / 100.0
         img = cv2.pyrMeanShiftFiltering(img, sp=max(3, round(L * (0.005 + 0.014 * a))), sr=12 + 28 * a)
