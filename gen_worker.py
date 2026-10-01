@@ -36,7 +36,10 @@ def pipe():
 
 def control_image(d, long_edge=1024):
     """Canny edges of the de-speckled subject, plus its silhouette, on black. Returns (PIL image, size)."""
-    src = np.array(Image.open(os.path.join(d, 'src.jpg')).convert('RGB'))
+    # Use pre-filtered image if available (engine.py already ran skin/stubble smoothing on it)
+    filtered_path = os.path.join(d, 'filtered.jpg')
+    src_path = os.path.join(d, 'src.jpg')
+    src = np.array(Image.open(filtered_path if os.path.exists(filtered_path) else src_path).convert('RGB'))
     mask = (np.array(Image.open(os.path.join(d, 'mask.png')).convert('L')) > 127).astype(np.uint8)
     H, W = mask.shape
     ys, xs = np.where(mask > 0)
@@ -51,13 +54,22 @@ def control_image(d, long_edge=1024):
     tw, th = max(64, round(w * k / 64) * 64), max(64, round(h * k / 64) * 64)
     img = cv2.resize(img, (tw, th), interpolation=cv2.INTER_AREA); m = cv2.resize(m, (tw, th), interpolation=cv2.INTER_NEAREST)
     g = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    # ── Stubble suppression ──────────────────────────────────────────
+    # Large morph-close merges individual beard/mustache hairs into solid dark regions
+    # before Canny sees them — prevents hair-strand edges from becoming blotchy lines.
+    close_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+    g_closed = cv2.morphologyEx(g, cv2.MORPH_CLOSE, close_k)
+    # Blend: apply closed image in dark regions (beard/shadow), keep original in bright regions (highlights)
+    alpha = np.clip((255 - g.astype(np.float32)) / 180.0, 0, 1)   # weight = 1 where dark, 0 where bright
+    g = (g_closed * alpha + g * (1 - alpha)).astype(np.uint8)
+    # Strong bilateral chain to smooth skin while preserving tattoo/feature edges
     g = cv2.medianBlur(g, 7)
-    for _ in range(3):
-        g = cv2.bilateralFilter(g, 0, 45, 9)
+    for _ in range(4):
+        g = cv2.bilateralFilter(g, 0, 55, 11)
     e = cv2.Canny(g, 20, 70)
     e = cv2.morphologyEx(e, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)))
     n, lab, st, _ = cv2.connectedComponentsWithStats(e, connectivity=8)           # drop specks (stubble / pores)
-    keep = np.zeros(n, bool); keep[1:] = st[1:, cv2.CC_STAT_AREA] >= 0.00012 * tw * th
+    keep = np.zeros(n, bool); keep[1:] = st[1:, cv2.CC_STAT_AREA] >= 0.00015 * tw * th   # slightly higher threshold = fewer hair strands
     e = (keep[lab] * 255).astype(np.uint8)
     cs, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(e, cs, -1, 255, 3)
