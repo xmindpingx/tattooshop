@@ -501,12 +501,16 @@ def cmd_render(dir, outbase, detail=65, weightMm=0.4, cleanup=30, background=0, 
                 raw = 0.8 + 0.9 * min(1.0, Lc / (0.30 * ref))              # short = fine, long = medium/bold
             fac = 1.0 + vw * (raw - 1.0)
         th = max(4.0, pen * fac) if vw == 0 else max(4.0, pen * fac)
-        if n >= 9:                                                         # circular moving average removes pixel staircase
-            win = min(n // 2 * 2 - 1, 9)
+        if n >= 5:                                                         # circular moving average removes pixel staircase
+            win = min(max(7, n // 3) | 1, 25)                             # scale with curve length, odd, up to 25 for smooth ovals
+            if win % 2 == 0: win += 1
             ker = np.ones(win, np.float32) / win
             pad_ = win // 2
             ext = np.concatenate([pts[-pad_:], pts, pts[:pad_]])
             pts = np.stack([np.convolve(ext[:, 0], ker, 'valid'), np.convolve(ext[:, 1], ker, 'valid')], 1)
+            if n >= 30:                                                    # second pass for long curves (eyes, lips, face oval)
+                ext = np.concatenate([pts[-pad_:], pts, pts[:pad_]])
+                pts = np.stack([np.convolve(ext[:, 0], ker, 'valid'), np.convolve(ext[:, 1], ker, 'valid')], 1)
         q = np.round((pts + 0.5) * f * (1 << SH)).astype(np.int32).reshape(-1, 1, 2)
         if n == 1:
             cv2.circle(canvas8, tuple(int(v) for v in ((pts[0] + 0.5) * f)), max(1, round(th / 2)), 255, -1, cv2.LINE_AA)
