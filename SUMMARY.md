@@ -99,3 +99,15 @@ Steps:
    - Thermal no-list panel (collapsible, default ON, applies to all tabs)
 4. Restructure nav to 6-tab shell (Tabs 3–6 can be stubs initially)
 5. `pm2 restart tattooshop` and review live
+
+---
+
+## Shared Size Control (already built in Tab 2, needs promotion)
+The size control already exists in the photo stencil tab:
+- `#size-in` input: 0.5–14 inches, step 0.25
+- `#size-cm` span: live cm conversion
+- `#size-chips`: quick-pick chip buttons (`data-s` attribute = size in inches)
+- `S.sizeIn` state variable, passed to `/api/render` and `/api/flash` as `sizeIn`
+- In `server.js` it becomes `sizeIn: num(b.sizeIn, 5)` (default 5 inches)
+
+**Task**: when building the 6-tab layout, promote this to a global component shared by all tabs (persistent header bar recommended).

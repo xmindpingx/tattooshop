@@ -66,3 +66,13 @@ _Last updated: 2026-10-01_
 - [x] AI Settings panel with tooltips
 - [x] Multi-candidate batch preview (1–4 candidates, clickable grid)
 - [x] Selected preview → flash/print export
+
+### Shared Size Control (all tabs)
+- [ ] The existing size control (`sizeIn`, 0.5–14 inches, with cm display and quick-pick chips) currently lives only in Tab 2 (photo stencil). It must be promoted to a **global/shared component** visible and active across all tabs:
+  - Tab 1 (text-to-stencil): sets output size of the text art stencil
+  - Tab 2 (photo stencil): already wired — keep as-is
+  - Tab 3 (img2img): sets resolution target for AI generation
+  - Tab 4 (previews): display-only (shows what size the previews were generated at)
+  - Tab 5 (selection): passes `sizeIn` to export/flash call
+  - Tab 6 (settings): show current size as a reminder
+- [ ] Options: place size control in a persistent header/footer bar, OR duplicate the widget in each tab's form (simpler but less DRY).
