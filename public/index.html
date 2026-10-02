@@ -113,7 +113,7 @@ header .spacer{flex:1}
 #cr-placeholder{text-align:center;padding:20px}
 #cr-placeholder h3{font-size:1.3rem;margin-bottom:8px;color:var(--accent)}
 #cr-placeholder p{color:var(--muted);font-size:.85rem;margin-bottom:16px}
-#cr-canvas{position:absolute;inset:0;width:100%;height:100%;display:none}
+#cr-canvas{position:absolute;inset:0;width:100%;height:100%;cursor:default}
 
 /* settings grid */
 .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -419,22 +419,28 @@ header .spacer{flex:1}
     <div class="tab-pane" data-tab="room">
       <div id="cr-fullscreen-wrap">
         <canvas id="cr-canvas"></canvas>
-        <div id="cr-placeholder">
-          <h3>👕 Changing Room</h3>
-          <p>3D interactive mesh &amp; placement coming in a future update.<br>Select a body area to preview tattoo placement.</p>
-          <div class="chip-bank" style="justify-content:center;margin-top:14px">
-            <button class="chip" data-area="arm" onclick="setCrArea('arm')">💪 Arm</button>
-            <button class="chip" data-area="forearm" onclick="setCrArea('forearm')">Forearm</button>
-            <button class="chip" data-area="chest" onclick="setCrArea('chest')">Chest</button>
-            <button class="chip" data-area="back" onclick="setCrArea('back')">Back</button>
-            <button class="chip" data-area="leg" onclick="setCrArea('leg')">Leg</button>
-            <button class="chip" data-area="neck" onclick="setCrArea('neck')">Neck</button>
-            <button class="chip" data-area="hand" onclick="setCrArea('hand')">Hand</button>
-            <button class="chip" data-area="ankle" onclick="setCrArea('ankle')">Ankle</button>
-          </div>
-        </div>
       </div>
-      <div class="row" style="margin-top:12px">
+      <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px">
+        <span style="font-size:.75rem;color:var(--muted);align-self:center">Body area:</span>
+        <button class="chip on" data-area="arm" onclick="setCrArea('arm')">💪 Arm</button>
+        <button class="chip" data-area="forearm" onclick="setCrArea('forearm')">Forearm</button>
+        <button class="chip" data-area="chest" onclick="setCrArea('chest')">Chest</button>
+        <button class="chip" data-area="back" onclick="setCrArea('back')">Back</button>
+        <button class="chip" data-area="leg" onclick="setCrArea('leg')">Leg</button>
+        <button class="chip" data-area="neck" onclick="setCrArea('neck')">Neck</button>
+        <button class="chip" data-area="hand" onclick="setCrArea('hand')">Hand</button>
+        <button class="chip" data-area="ankle" onclick="setCrArea('ankle')">Ankle</button>
+      </div>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+        <span style="font-size:.75rem;color:var(--muted);align-self:center">Skin tone:</span>
+        <button class="chip" onclick="setCrSkin('#f5d5c0')" style="background:#f5d5c0;color:#333;border:2px solid transparent">Light</button>
+        <button class="chip" onclick="setCrSkin('#c4956a')" style="background:#c4956a;color:#fff;border:2px solid var(--accent)">Medium</button>
+        <button class="chip" onclick="setCrSkin('#6b3c1c')" style="background:#6b3c1c;color:#fff;border:2px solid transparent">Dark</button>
+        <div class="spacer"></div>
+        <button class="chip" onclick="resetCrPosition()">↺ Reset</button>
+        <button class="chip" id="btn-cr-toggle" onclick="toggleCrPreview()">▶ Preview</button>
+      </div>
+      <div class="row" style="margin-top:8px">
         <div class="slider-group">
           <label>Scale</label>
           <input type="range" id="sl-cr-scale" min="10" max="200" value="100" oninput="onCrSlider()">
@@ -445,9 +451,8 @@ header .spacer{flex:1}
           <input type="range" id="sl-cr-opacity" min="10" max="100" value="80" oninput="onCrSlider()">
           <span id="sv-cr-opacity">80%</span>
         </div>
-        <button class="chip" id="btn-cr-toggle" onclick="toggleCrPreview()" style="margin-left:auto">▶ Preview Stencil</button>
       </div>
-      <p style="color:var(--muted);font-size:.72rem;margin-top:8px">Full 3D WebGL mesh model coming soon. Framework ready.</p>
+      <p style="color:var(--muted);font-size:.72rem;margin-top:6px">Drag the stencil to reposition it. Use Scale and Opacity sliders to fine-tune placement.</p>
     </div>
 
     <!-- ── TAB: SETTINGS ── -->
@@ -859,6 +864,7 @@ function showStencil(url) {
     img.src = url;
   }
   S.currentBlob = url;  // may be blob: or /output/ path
+  _crImg = null;        // reset so Changing Room loads the new stencil
   if (url.startsWith('/output/')) S.lastServerPng = url;
   const er = document.getElementById('export-row');
   if (er) er.style.display = '';
@@ -960,6 +966,10 @@ function setSizeChip(s) {
 }
 
 /* ── Changing Room ─────────────────────────────────────────────────── */
+let _crImg = null, _crDragX = 0.5, _crDragY = 0.45;
+let _crDragging = false, _crDragOX = 0, _crDragOY = 0;
+let _crShowStencil = false, _crSkin = '#c4956a';
+
 function setCrArea(area) {
   S.crArea = area;
   document.querySelectorAll('[data-area]').forEach(b => {
@@ -968,35 +978,224 @@ function setCrArea(area) {
   refreshCR();
 }
 
+function setCrSkin(hex) {
+  _crSkin = hex;
+  document.querySelectorAll('[onclick^="setCrSkin"]').forEach(b => {
+    b.style.border = b.getAttribute('onclick').includes(hex)
+      ? '2px solid var(--accent)' : '2px solid transparent';
+  });
+  refreshCR();
+}
+
 function onCrSlider() {
   S.crScale = parseFloat(document.getElementById('sl-cr-scale')?.value || 100);
   S.crOpacity = parseFloat(document.getElementById('sl-cr-opacity')?.value || 80);
-  const lbl1 = document.getElementById('lbl-cr-crScale');
-  const lbl2 = document.getElementById('lbl-cr-crOpacity');
+  const lbl1 = document.getElementById('sv-cr-scale');
+  const lbl2 = document.getElementById('sv-cr-opacity');
   if (lbl1) lbl1.textContent = S.crScale + '%';
   if (lbl2) lbl2.textContent = S.crOpacity + '%';
   refreshCR();
 }
 
+function toggleCrPreview() {
+  _crShowStencil = !_crShowStencil;
+  const btn = document.getElementById('btn-cr-toggle');
+  if (btn) btn.textContent = _crShowStencil ? '⏹ Hide' : '▶ Preview';
+  const canvas = document.getElementById('cr-canvas');
+  if (canvas) canvas.style.cursor = _crShowStencil ? 'grab' : 'default';
+  if (_crShowStencil && S.currentBlob && !_crImg) {
+    const img = new Image();
+    img.onload = () => { _crImg = img; refreshCR(); };
+    img.src = S.currentBlob;
+  } else {
+    refreshCR();
+  }
+}
+
+function resetCrPosition() {
+  _crDragX = 0.5; _crDragY = 0.45;
+  refreshCR();
+}
+
+function drawBodyArea(ctx, area, w, h, skin) {
+  ctx.save();
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 2;
+  const cx = w / 2, cy = h / 2;
+
+  if (area === 'arm' || area === 'forearm') {
+    const armW = area === 'arm' ? w * 0.26 : w * 0.2;
+    const armH = h * 0.78;
+    const ax = cx - armW / 2, ay = cy - armH / 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, ay + armW * 0.18, armW / 2, armW * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax, ay + armW * 0.18);
+    ctx.bezierCurveTo(ax - armW * 0.05, cy, ax + armW * 0.05, ay + armH * 0.9, ax + armW * 0.1, ay + armH);
+    ctx.lineTo(ax + armW * 0.9, ay + armH);
+    ctx.bezierCurveTo(ax + armW * 0.95, ay + armH * 0.9, ax + armW * 1.05, cy, ax + armW, ay + armW * 0.18);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, ay + armH - armW * 0.18, armW / 2, armW * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+  } else if (area === 'chest') {
+    const cw = w * 0.55, ch = h * 0.6;
+    const bx = cx - cw / 2, by = cy - ch / 2;
+    ctx.beginPath();
+    ctx.moveTo(bx + cw * 0.15, by);
+    ctx.bezierCurveTo(bx + cw * 0.35, by - ch * 0.08, bx + cw * 0.65, by - ch * 0.08, bx + cw * 0.85, by);
+    ctx.lineTo(bx + cw, by + ch);
+    ctx.lineTo(bx, by + ch);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+  } else if (area === 'back') {
+    const cw = w * 0.55, ch = h * 0.68;
+    const bx = cx - cw / 2, by = cy - ch / 2;
+    ctx.beginPath();
+    ctx.moveTo(bx + cw * 0.1, by);
+    ctx.bezierCurveTo(bx + cw * 0.3, by - ch * 0.06, bx + cw * 0.7, by - ch * 0.06, bx + cw * 0.9, by);
+    ctx.lineTo(bx + cw, by + ch);
+    ctx.lineTo(bx, by + ch);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+  } else if (area === 'leg') {
+    const lw = w * 0.3, lh = h * 0.82;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, lw / 2, lh / 2, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+  } else if (area === 'neck') {
+    const nw = w * 0.22, nh = h * 0.6;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - nh / 2 + nw * 0.2, nw / 2, nw * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.rect(cx - nw / 2, cy - nh / 2 + nw * 0.2, nw, nh - nw * 0.4);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + nh / 2 - nw * 0.2, nw / 2, nw * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+  } else if (area === 'hand') {
+    const hw = w * 0.35, hh = h * 0.6;
+    const hx = cx - hw / 2, hy = cy - hh * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(cx, hy);
+    ctx.bezierCurveTo(cx + hw * 0.45, hy, hx + hw, hy + hh * 0.3, hx + hw, hy + hh * 0.55);
+    ctx.bezierCurveTo(hx + hw, hy + hh, hx + hw * 0.65, hy + hh, cx, hy + hh);
+    ctx.bezierCurveTo(hx + hw * 0.35, hy + hh, hx, hy + hh, hx, hy + hh * 0.55);
+    ctx.bezierCurveTo(hx, hy + hh * 0.3, cx - hw * 0.45, hy, cx, hy);
+    ctx.fill(); ctx.stroke();
+
+  } else if (area === 'ankle') {
+    const aw = w * 0.22, ah = h * 0.7;
+    const ax2 = cx - aw / 2;
+    ctx.beginPath();
+    ctx.moveTo(ax2, cy - ah / 2);
+    ctx.lineTo(ax2 + aw, cy - ah / 2);
+    ctx.bezierCurveTo(ax2 + aw + aw * 0.1, cy, ax2 + aw + aw * 0.05, cy + ah / 2, ax2 + aw * 0.85, cy + ah / 2);
+    ctx.lineTo(ax2 + aw * 0.15, cy + ah / 2);
+    ctx.bezierCurveTo(ax2 - aw * 0.05, cy + ah / 2, ax2 - aw * 0.1, cy, ax2, cy - ah / 2);
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function refreshCR() {
   const canvas = document.getElementById('cr-canvas');
-  if (!canvas || !S.hasStencil) return;
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Placeholder — real 3D mesh comes in future update
-  ctx.fillStyle = 'rgba(192,132,252,0.15)';
-  ctx.fillRect(20, 20, canvas.width - 40, canvas.height - 40);
-  ctx.fillStyle = '#c084fc';
-  ctx.font = '16px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(`${S.crArea} · scale ${S.crScale}% · opacity ${S.crOpacity}%`, canvas.width/2, canvas.height/2);
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h) * 0.7);
+  grad.addColorStop(0, 'rgba(30,18,48,0.88)');
+  grad.addColorStop(1, 'rgba(10,6,18,0.97)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  drawBodyArea(ctx, S.crArea, w, h, _crSkin);
+
+  if (_crShowStencil && _crImg) {
+    const baseSize = Math.min(w, h) * 0.35 * (S.crScale / 100);
+    const ratio = _crImg.naturalWidth / (_crImg.naturalHeight || 1);
+    const sw = ratio >= 1 ? baseSize : baseSize * ratio;
+    const sh = ratio < 1 ? baseSize : baseSize / ratio;
+    const sx = _crDragX * w - sw / 2;
+    const sy = _crDragY * h - sh / 2;
+    ctx.save();
+    ctx.globalAlpha = S.crOpacity / 100;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.drawImage(_crImg, sx, sy, sw, sh);
+    ctx.restore();
+  } else if (_crShowStencil) {
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Generate or upload a stencil first', w / 2, h - 16);
+  }
+
+  ctx.fillStyle = 'rgba(192,132,252,0.5)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(S.crArea.charAt(0).toUpperCase() + S.crArea.slice(1), 10, h - 10);
 }
 
 function initCR() {
   const canvas = document.getElementById('cr-canvas');
   if (!canvas) return;
   const wrap = document.getElementById('cr-fullscreen-wrap');
-  if (wrap) { canvas.width = wrap.clientWidth || 800; canvas.height = wrap.clientHeight || 450; }
+  if (wrap) {
+    canvas.width = wrap.clientWidth || 800;
+    canvas.height = wrap.clientHeight || 400;
+  }
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  }
+  function onStart(e) {
+    if (!_crShowStencil) return;
+    e.preventDefault();
+    _crDragging = true;
+    const p = getPos(e);
+    _crDragOX = p.x / canvas.width - _crDragX;
+    _crDragOY = p.y / canvas.height - _crDragY;
+    canvas.style.cursor = 'grabbing';
+  }
+  function onMove(e) {
+    if (!_crDragging) return;
+    e.preventDefault();
+    const p = getPos(e);
+    _crDragX = Math.max(0.05, Math.min(0.95, p.x / canvas.width - _crDragOX));
+    _crDragY = Math.max(0.05, Math.min(0.95, p.y / canvas.height - _crDragOY));
+    refreshCR();
+  }
+  function onEnd() {
+    _crDragging = false;
+    canvas.style.cursor = _crShowStencil ? 'grab' : 'default';
+  }
+  canvas.addEventListener('mousedown', onStart);
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseup', onEnd);
+  canvas.addEventListener('mouseleave', onEnd);
+  canvas.addEventListener('touchstart', onStart, { passive: false });
+  canvas.addEventListener('touchmove', onMove, { passive: false });
+  canvas.addEventListener('touchend', onEnd);
+
+  window.addEventListener('resize', () => {
+    if (wrap) { canvas.width = wrap.clientWidth || 800; canvas.height = wrap.clientHeight || 400; }
+    refreshCR();
+  });
+
+  refreshCR();
 }
 
 /* ── Photo upload ──────────────────────────────────────────────────── */
@@ -1113,7 +1312,6 @@ function init() {
   }
   // CR init
   initCR();
-  window.addEventListener('resize', initCR);
 }
 
 document.addEventListener('DOMContentLoaded', init);
