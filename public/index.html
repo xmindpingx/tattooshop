@@ -252,28 +252,28 @@ header .spacer{flex:1}
   <!-- Post-process: AI panel -->
   <div id="post-ai-panel">
     <p class="sec" style="margin:0;width:100%">AI Settings</p>
-    <div class="slider-group">
-      <label>ControlNet</label>
+    <div class="slider-group" title="ControlNet strength — how closely the AI follows your stencil lines. Higher = more faithful to original shape; lower = more creative freedom.">
+      <label>ControlNet ⓘ</label>
       <input type="range" id="sl-cn" min="0" max="100" value="85" oninput="updateAi(this,'aiCnScale',0.01)">
       <span id="sv-cn">0.85</span>
     </div>
-    <div class="slider-group">
-      <label>CFG</label>
+    <div class="slider-group" title="CFG (Classifier-Free Guidance) — how strongly the AI sticks to your prompt. Low = loose/creative, high = literal but can over-saturate. 6–8 is the sweet spot.">
+      <label>CFG ⓘ</label>
       <input type="range" id="sl-cfg" min="1" max="20" step="0.5" value="7.5" oninput="updateAi(this,'aiCfg',1)">
       <span id="sv-cfg">7.5</span>
     </div>
-    <div class="slider-group">
-      <label>Steps</label>
+    <div class="slider-group" title="Diffusion steps — more steps = finer detail and cleaner lines, but slower. 20–30 is fast; 40–50 is highest quality.">
+      <label>Steps ⓘ</label>
       <input type="range" id="sl-steps" min="10" max="50" value="28" oninput="updateAi(this,'aiSteps',1)">
       <span id="sv-steps">28</span>
     </div>
-    <div class="slider-group">
-      <label>LoRA wt</label>
+    <div class="slider-group" title="LoRA weight — how much the tattoo style LoRA influences the result. Higher = more stylized tattoo look; lower = closer to base SDXL style.">
+      <label>LoRA wt ⓘ</label>
       <input type="range" id="sl-loraw" min="0" max="100" value="65" oninput="updateAi(this,'aiLoraW',0.01)">
       <span id="sv-loraw">0.65</span>
     </div>
-    <div class="slider-group">
-      <label>Candidates</label>
+    <div class="slider-group" title="Number of variations to generate. 1 = single result shown in preview; 2–4 = multiple options appear in the Candidates tab to compare.">
+      <label>Candidates ⓘ</label>
       <input type="range" id="sl-count" min="1" max="4" value="1" oninput="updateAi(this,'aiCount',1)">
       <span id="sv-count">1</span>
     </div>
