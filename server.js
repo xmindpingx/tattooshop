@@ -237,7 +237,8 @@ app.post('/api/gen/start', wrap(async (req, res) => {
   const trigger = lora !== 'none' ? LORA_TRIGGER[lora] : null;
   let prompt = clip(b.prompt, 900) || (T.positive(subj) + (extra ? ', ' + extra : ''));
   if (trigger && !new RegExp(trigger, 'i').test(prompt)) prompt = trigger + ', ' + prompt;
-  const negative = clip(b.negative, 900) || T.negative;
+  const nolist = clip(b.nolist, 600);
+  const negative = (clip(b.negative, 900) || T.negative) + (nolist ? ', ' + nolist : '');
   const gid = uuidv4().slice(0, 8);
   const genArgs = { dir: jobDir(id), prompt, negative, scale, guidance, steps, base, lora, loraWeight };
   genJobs.set(gid, { status: 'running', mode, job: id, started: Date.now(), prompt, count });

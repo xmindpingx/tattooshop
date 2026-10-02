@@ -1636,10 +1636,16 @@ function refreshCR() {
       sx = (_crDragX * w - sw / 2);
       sy = (_crDragY * h - sh / 2);
     } else { sx=sy=0; sw=sh=100; }
+    // Invert stencil so black lines → white (visible on dark bg via 'screen' blend)
+    const tmpC = document.createElement('canvas');
+    tmpC.width = _crImg.naturalWidth; tmpC.height = _crImg.naturalHeight;
+    const tmpCtx = tmpC.getContext('2d');
+    tmpCtx.filter = 'invert(1)';
+    tmpCtx.drawImage(_crImg, 0, 0);
     ctx.save();
     ctx.globalAlpha = S.crOpacity / 100;
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.drawImage(_crImg, sx, sy, sw, sh);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(tmpC, sx, sy, sw, sh);
     ctx.restore();
   } else if (_crShowStencil) {
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
