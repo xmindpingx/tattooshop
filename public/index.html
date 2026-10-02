@@ -443,12 +443,16 @@ header .spacer{flex:1}
       <div class="row" style="margin-top:8px">
         <div class="slider-group">
           <label>Scale</label>
-          <input type="range" id="sl-cr-scale" min="10" max="200" value="100" oninput="onCrSlider()">
+          <input type="range" id="sl-cr-scale" min="10" max="200" value="100" list="cr-scale-marks"
+            oninput="document.getElementById('sv-cr-scale').textContent=this.value+'%';onCrSlider()">
+          <datalist id="cr-scale-marks"><option value="60" label="✦"></option></datalist>
           <span id="sv-cr-scale">100%</span>
         </div>
         <div class="slider-group">
           <label>Opacity</label>
-          <input type="range" id="sl-cr-opacity" min="10" max="100" value="80" oninput="onCrSlider()">
+          <input type="range" id="sl-cr-opacity" min="10" max="100" value="80" list="cr-opacity-marks"
+            oninput="document.getElementById('sv-cr-opacity').textContent=this.value+'%';onCrSlider()">
+          <datalist id="cr-opacity-marks"><option value="75" label="✦"></option></datalist>
           <span id="sv-cr-opacity">80%</span>
         </div>
       </div>
