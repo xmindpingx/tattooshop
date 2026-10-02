@@ -610,6 +610,18 @@ function setTab(tab) {
   });
   const nl = document.getElementById('nolist-wrap');
   if (nl) nl.style.display = (tab === 'text' || tab === 'ai') ? '' : 'none';
+  if (tab === 'room' && S.hasStencil && !_crShowStencil) {
+    _crShowStencil = true;
+    const btn = document.getElementById('btn-cr-toggle');
+    if (btn) btn.textContent = '⏹ Hide';
+    const canvas = document.getElementById('cr-canvas');
+    if (canvas) canvas.style.cursor = 'grab';
+    if (S.currentBlob && !_crImg) {
+      const img = new Image();
+      img.onload = () => { _crImg = img; refreshCR(); };
+      img.src = S.currentBlob;
+    } else { refreshCR(); }
+  } else if (tab === 'room') { refreshCR(); }
 }
 
 function setInner(scope, inner) {
@@ -1107,6 +1119,27 @@ function drawBodyArea(ctx, area, w, h, skin) {
   ctx.restore();
 }
 
+const _CR_CYLINDRICAL = new Set(['arm','forearm','neck','ankle','leg']);
+function drawStencilOnArea(ctx, img, sx, sy, sw, sh, area) {
+  if (_CR_CYLINDRICAL.has(area)) {
+    const slices = 60;
+    const srcW = img.naturalWidth, srcH = img.naturalHeight;
+    const srcSliceW = srcW / slices;
+    const destSliceW = sw / slices;
+    for (let i = 0; i < slices; i++) {
+      const t = (i + 0.5) / slices - 0.5;
+      const cosA = Math.cos(t * Math.PI * 0.75);
+      const destH = sh * cosA;
+      const destY = sy + (sh - destH) / 2;
+      ctx.drawImage(img,
+        i * srcSliceW, 0, srcSliceW, srcH,
+        sx + i * destSliceW, destY, destSliceW + 0.5, destH);
+    }
+  } else {
+    ctx.drawImage(img, sx, sy, sw, sh);
+  }
+}
+
 function refreshCR() {
   const canvas = document.getElementById('cr-canvas');
   if (!canvas) return;
@@ -1132,7 +1165,7 @@ function refreshCR() {
     ctx.save();
     ctx.globalAlpha = S.crOpacity / 100;
     ctx.globalCompositeOperation = 'multiply';
-    ctx.drawImage(_crImg, sx, sy, sw, sh);
+    drawStencilOnArea(ctx, _crImg, sx, sy, sw, sh, S.crArea);
     ctx.restore();
   } else if (_crShowStencil) {
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
