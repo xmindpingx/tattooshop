@@ -41,7 +41,12 @@ def pipe(base='sdxl', lora='tattoo', lora_weight=0.65):
         p.load_lora_weights(sd, adapter_name=lora)
         p.set_adapters([lora], adapter_weights=[float(lora_weight)])
     p.scheduler = UniPCMultistepScheduler.from_config(p.scheduler.config)
-    p.to('cuda')
+    try:
+        p.to('cuda')
+    except torch.OutOfMemoryError:
+        print('[gen] OOM on full GPU load — falling back to model_cpu_offload', flush=True)
+        torch.cuda.empty_cache()
+        p.enable_model_cpu_offload()
     p.vae.enable_tiling()
     p.enable_attention_slicing('auto')        # the 16 GB card runs out of memory on full attention at ~1000 px
     _pipe, _pipe_key = p, key
@@ -114,8 +119,17 @@ def cmd_generate(dir, out, prompt, negative, scale=0.75, steps=28, guidance=6.0,
         ctl.save(control_out)
     p = pipe(base, lora, loraWeight)
     gen = torch.Generator('cuda').manual_seed(int(seed) if seed is not None else int(time.time()) % 2**31)
-    img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
-            guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
+    try:
+        img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
+                guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
+    except torch.OutOfMemoryError:
+        torch.cuda.empty_cache()
+        tw2, th2 = max(64, round(tw * 0.75 / 64) * 64), max(64, round(th * 0.75 / 64) * 64)
+        print(f'[gen] OOM at {tw}x{th}, retrying at {tw2}x{th2}', flush=True)
+        ctl2 = ctl.resize((tw2, th2))
+        gen = torch.Generator('cuda').manual_seed(int(seed) if seed is not None else int(time.time()) % 2**31)
+        img = p(prompt=prompt, negative_prompt=negative, image=ctl2, width=tw2, height=th2, num_inference_steps=int(steps),
+                guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
     if whiten:
         img = whiten_bg(img)
     img.save(out)
@@ -134,8 +148,18 @@ def cmd_generate_batch(dir, outs, prompt, negative, scale=0.75, steps=28, guidan
     for out, sd in zip(outs, seeds):
         torch.cuda.empty_cache()                                           # free fragments before each candidate to avoid OOM
         gen = torch.Generator('cuda').manual_seed(int(sd))
-        img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
-                guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
+        try:
+            img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
+                    guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
+        except torch.OutOfMemoryError:
+            # Shrink resolution ~25% and retry once
+            torch.cuda.empty_cache()
+            tw2, th2 = max(64, round(tw * 0.75 / 64) * 64), max(64, round(th * 0.75 / 64) * 64)
+            print(f'[gen] OOM at {tw}x{th}, retrying at {tw2}x{th2}', flush=True)
+            ctl2 = ctl.resize((tw2, th2))
+            gen = torch.Generator('cuda').manual_seed(int(sd))
+            img = p(prompt=prompt, negative_prompt=negative, image=ctl2, width=tw2, height=th2, num_inference_steps=int(steps),
+                    guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
         if whiten:
             img = whiten_bg(img)
         img.save(out)
