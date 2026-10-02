@@ -10,11 +10,11 @@ _Last updated: 2026-10-01_
 - [ ] **Design LoRA (Tattoo_gen) not visually reviewed**: Wired in and mechanically confirmed but no quality comparison vs `tattoo` LoRA on a real face photo.
 
 ### Trace / Stencil Pipeline
-- [ ] **Fills can over-darken at shadows > 10 + high detail**: Locally-normalized fills detection is better but can still punch shadows as large solid fills near the top of the safe range (shadows ≤ 15).
-- [ ] **`light`/relight slider may not be wired to frontend**: `cmd_render()` accepts `light` param and `relight()` is implemented in engine.py, but verify that a frontend slider labeled "light" or "relight" actually exists and posts to `/api/render`. No such slider was confirmed visible in the final UI scan.
+- [x] **Fills can over-darken at shadows > 10 + high detail**: Tightened fills percentile (1.0+7x), lowered large-region cutoff (0.18 ref), and tightened shadows percentile (10+23x). Fixed 2026-10-02.
+- [x] **`light`/relight slider not wired to frontend**: Added `sl-light` slider (0–50), `S.light` state, wired to all three render calls (doRender, doDestubble, doRelight) and server.js. Fixed 2026-10-02.
 
 ### Export
-- [ ] **PDF export size not shown to user**: `_export_bw()` auto-fits design to US letter but the UI never tells the user what final printed size their design became (e.g. "5.2\" × 5.2\" on letter").
+- [x] **PDF export size not shown to user**: doRender() now shows a toast with actual printed dimensions from d.inches[]. Fixed 2026-10-02.
 
 ### Thermal No-List (Not Yet Built)
 - [ ] **Thermal no-list not yet implemented**: Planned feature (see TODO.md). Current negative prompts manually include some thermal-safe terms but there's no UI toggle or per-term checklist yet.

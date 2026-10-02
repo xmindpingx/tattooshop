@@ -210,7 +210,7 @@ def relight(rgb, amount=0):
     lab[..., 0] = np.clip(L * (1 - a) + flat * a, 0, 255)
     return cv2.cvtColor(lab.astype(np.uint8), cv2.COLOR_LAB2RGB)
 
-PROTECT = 30     # local contrast above this (tattoo ink, metal jewellery) is never smoothed as stubble
+PROTECT = 25     # local contrast above this (tattoo ink, metal jewellery) is never smoothed as stubble
 def destubble(rgb, amount=0):
     """Smooth only patches of dense fine hair texture (stubble, beard), leaving eyes, tattoos and jewellery sharp (0..100)."""
     a = float(amount) / 100.0
@@ -227,8 +227,8 @@ def destubble(rgb, amount=0):
     m = cv2.GaussianBlur(m, (0, 0), L * 0.008)
     hp_raw = np.abs(g.astype(np.float32) - cv2.medianBlur(g, k).astype(np.float32))
     strong = (hp_raw > PROTECT).astype(np.uint8)                          # tattoo ink / metal jewellery: far more contrast than hair
-    strong = drop_small(strong, max(4, (L * 0.004) ** 2))
-    strong = cv2.GaussianBlur(cv2.dilate(strong, disk(L * 0.006)).astype(np.float32), (0, 0), L * 0.003)
+    strong = drop_small(strong, max(4, (L * 0.003) ** 2))
+    strong = cv2.GaussianBlur(cv2.dilate(strong, disk(L * 0.009)).astype(np.float32), (0, 0), L * 0.004)
     m = (m * (1 - np.clip(strong, 0, 1)))[..., None] * min(1.0, a * 1.4)
     r = max(1, round(L * (0.002 + 0.005 * a)))
     sm = cv2.morphologyEx(rgb, cv2.MORPH_CLOSE, disk(r))
