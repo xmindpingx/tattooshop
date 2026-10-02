@@ -812,12 +812,14 @@ function onGenerate() {
 
 /* ── Text stencil ──────────────────────────────────────────────────── */
 function doTextStencil() {
+  if (S._textRendering) { showToast('Already generating — wait for it to finish.', 2500); return; }
   if (S.textMode === 'ai') { showToast('AI lettering coming soon — use Outline Only for now.', 3000); return; }
   const textEl = document.getElementById('text-input');
   const text = textEl ? textEl.value.trim() : '';
   if (!text) { showToast('Enter some text first.', 2500); return; }
   const sizeEl = document.getElementById('size-in');
   const size = sizeEl ? parseFloat(sizeEl.value) : 5;
+  S._textRendering = true;
   showOverlay('Creating stencil…', 0);
   fetch('/api/text-stencil', {
     method:'POST',
@@ -832,11 +834,12 @@ function doTextStencil() {
     return r.blob();
   })
   .then(blob => {
+    S._textRendering = false;
     hideOverlay();
     const url = URL.createObjectURL(blob);
     showStencil(url);
   })
-  .catch(e => { hideOverlay(); showToast('Error: ' + e.message, 4000); });
+  .catch(e => { S._textRendering = false; hideOverlay(); showToast('Error: ' + e.message, 4000); });
 }
 
 /* ── Photo render ──────────────────────────────────────────────────── */
@@ -858,6 +861,7 @@ function doRender() {
     hideOverlay();
     if (d.error) { showToast('Error: ' + d.error, 4000); return; }
     const url = (d.files && d.files.png) || d.url || d.path;
+    if (d.files && d.files.pdf) S.lastServerPdf = d.files.pdf;
     showStencil(url);
     // Show printed size from engine response
     if (d.inches && d.inches.length === 2) {
@@ -965,12 +969,14 @@ function showStencil(url) {
 
 /* ── Export / post-process ─────────────────────────────────────────── */
 function doExport(type) {
-  // Files are already generated at S.currentBlob's base path
-  // The render response gives us files.pdf and files.png
   if (!S.currentBlob) { showToast('Generate a stencil first.', 2500); return; }
-  // Derive pdf path from png path (same base, different extension)
-  let targetUrl = S.currentBlob;
-  if (type === 'pdf') targetUrl = S.currentBlob.replace(/\.png$/, '.pdf');
+  let targetUrl;
+  if (type === 'pdf') {
+    if (!S.lastServerPdf || S.lastServerPdf.replace(/\.pdf$/, '.png') !== S.currentBlob) { showToast('PDF only available for the latest Photo Render — run Render first.', 3500); return; }
+    targetUrl = S.lastServerPdf;
+  } else {
+    targetUrl = S.currentBlob;
+  }
   const a = document.createElement('a');
   a.href = targetUrl;
   a.download = 'stencil.' + type;
@@ -1725,13 +1731,16 @@ function onFileSelect(e) {
 }
 
 function handlePhotoFile(file) {
+  if (S._uploading) { showToast('Upload already in progress.', 2000); return; }
   if (!file.type.startsWith('image/')) { showToast('Please drop an image file.', 2500); return; }
+  S._uploading = true;
   const fd = new FormData();
   fd.append('photo', file);
   showOverlay('Uploading photo…', 10);
   fetch('/api/prepare', { method:'POST', body: fd })
   .then(r => r.json())
   .then(d => {
+    S._uploading = false;
     hideOverlay();
     if (d.error) { showToast('Upload error: ' + d.error, 4000); return; }
     S.hasPhoto = true;
@@ -1744,7 +1753,7 @@ function handlePhotoFile(file) {
     if (ph) ph.style.display = 'none';
     showToast('Photo uploaded — adjust and Generate!', 2500);
   })
-  .catch(e => { hideOverlay(); showToast('Upload failed: ' + e.message, 4000); });
+  .catch(e => { S._uploading = false; hideOverlay(); showToast('Upload failed: ' + e.message, 4000); });
 }
 
 /* ── Overlay helpers ───────────────────────────────────────────────── */
@@ -1775,8 +1784,11 @@ function cancelGen() {
     fetch('/api/gen/cancel/' + S.genJobId, { method:'POST' }).catch(() => {});
     S.genJobId = null;
   }
+  S._rendering = false;
+  S._textRendering = false;
+  S._uploading = false;
   hideOverlay();
-  showToast('Generation cancelled.', 2000);
+  showToast('Cancelled.', 2000);
 }
 
 /* ── Toast ─────────────────────────────────────────────────────────── */
