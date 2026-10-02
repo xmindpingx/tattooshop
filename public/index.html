@@ -856,6 +856,12 @@ function doRender() {
     if (d.error) { showToast('Error: ' + d.error, 4000); return; }
     const url = (d.files && d.files.png) || d.url || d.path;
     showStencil(url);
+    // Show printed size from engine response
+    if (d.inches && d.inches.length === 2) {
+      const [wi, hi] = d.inches;
+      const orient = d.orientation || 'portrait';
+      showToast(`Output: ${wi}" × ${hi}" — fits US Letter (${orient})`, 3500);
+    }
     const ppPhoto = document.getElementById('post-photo');
     const ppAi = document.getElementById('post-ai-panel');
     if (ppPhoto) ppPhoto.classList.add('visible');
@@ -911,7 +917,7 @@ function pollJob(id) {
           }
           if (allUrls.length > 0) {
             showStencil(allUrls[0]);
-            loadCandidates(id, allUrls);
+            loadCandidates(id, allUrls, allUrls.length > 1);
           } else {
             showToast('Generation complete but no image returned.', 4000);
           }
@@ -995,7 +1001,7 @@ function doRelight() {
 }
 
 /* ── Candidates grid ───────────────────────────────────────────────── */
-function loadCandidates(jobId, images) {
+function loadCandidates(jobId, images, autoSwitch) {
   const empty = document.getElementById('candidates-empty');
   const grid = document.getElementById('candidates-grid');
   if (!grid) return;
@@ -1011,7 +1017,7 @@ function loadCandidates(jobId, images) {
       <div class="cand-label">Option ${i+1}</div>
     </div>`
   ).join('');
-  setTab('previews');
+  if (autoSwitch !== false) setTab('previews');
 }
 
 function selectCandidate(url) {
