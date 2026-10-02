@@ -150,6 +150,7 @@ footer a { color:var(--accent); text-decoration:none; }
           <button class="chip" data-f="portrait">Portrait</button>
           <button class="chip" data-f="bold">Bold &amp; simple</button>
         </div>
+        <div class="slider"><label for="f-stubble">Remove beard &amp; stubble texture (keeps tattoos &amp; piercings)</label><output id="o-stubble">50</output><input type="range" id="f-stubble" min="0" max="100" step="5" value="50"></div>
         <div class="slider"><label for="f-skin">Smooth skin (wrinkles &amp; blemishes)</label><output id="o-skin">0</output><input type="range" id="f-skin" min="0" max="100" step="1" value="0"></div>
         <div class="slider"><label for="f-smooth">Hide stubble, pores &amp; specks</label><output id="o-smooth">0</output><input type="range" id="f-smooth" min="0" max="100" step="1" value="0"></div>
         <div class="slider"><label for="f-texture">Flatten shading</label><output id="o-texture">0</output><input type="range" id="f-texture" min="0" max="100" step="1" value="0"></div>
@@ -258,7 +259,7 @@ footer a { color:var(--accent); text-decoration:none; }
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const DEFAULT_STYLE = { background:0, detail:45, cleanup:50, weightMm:0.45, mirror:false, smooth:30, texture:0, skin:0, varw:0, fills:0, shadows:0 };
+const DEFAULT_STYLE = { background:0, detail:65, cleanup:30, weightMm:0.4, mirror:false, smooth:10, texture:0, skin:0, stubble:50, varw:60, fills:40, shadows:0 };   // tuned on a tattooed, stubbled portrait vs a flash-art reference
 const S = { base:null, baseId:0, bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, tab:'adjust',
   job:null, points:[], mode:'pick', sizeIn:5, style:{...DEFAULT_STYLE}, styleTouched:false, hasStencil:false, prepCache:null };
 
@@ -438,7 +439,7 @@ function ensurePrepared() {
       const fd = new FormData(); fd.append('photo', blob, 'photo.jpg');
       const d = await api('/api/prepare', null, fd);
       S.job = { id:d.jobId, sig, overlay:d.overlay, ai:d.ai, skinShare:d.skinShare }; S.points = [];
-      if (d.skinShare > 0.4 && !S.styleTouched && !S.hasStencil) { PKEYS.forEach((k, i) => S.style[k] = PRESETS.beard[i]); syncStyleUI(); }   // skin-toned subject: start with beard preset (handles stubble by default)
+      if (d.skinShare > 0.4 && !S.styleTouched && !S.hasStencil) { PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); }   // skin-toned subject: start with the tuned portrait preset
       showAI(null); pollAI(d.jobId);
       say(d.isolated ? 'Subject found.' : 'No single subject stood out, so the whole photo is used.', 'ok');
       return S.job;
@@ -454,7 +455,7 @@ async function pollAI(id) {
     let d; try { d = await (await fetch('/api/ai/' + id)).json(); } catch { continue; }
     if (d.status === 'done') {
       S.job.ai = d.ai;
-      if (d.ai) { if (!S.styleTouched && !S.hasStencil) { Object.assign(S.style, aiDefaults(d.ai)); if (S.job.skinShare > 0.4) PKEYS.forEach((k, i) => S.style[k] = PRESETS.beard[i]); syncStyleUI(); } showAI(d.ai); }
+      if (d.ai) { if (!S.styleTouched && !S.hasStencil) { Object.assign(S.style, aiDefaults(d.ai)); if (S.job.skinShare > 0.4) PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); } showAI(d.ai); }
       return;
     }
     if (d.status === 'none') return;
@@ -510,13 +511,13 @@ $$('#size-chips [data-s]').forEach(b => b.onclick = () => setSize(b.dataset.s, t
 const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm', varw:v => v, fills:v => v, shadows:v => v };
 const FILTERS = { none:[0,0,0], skin:[60,0,0], beard:[0,45,0], portrait:[30,25,0], bold:[40,60,50] };
 // style presets, picked by testing on a real stubble/wrinkle portrait: [skin, smooth, texture, detail, cleanup]
-const PRESETS = { portrait:[30,25,0,55,50], beard:[0,45,0,60,60], minimal:[25,40,0,65,45], detailed:[0,20,0,50,70], original:[0,0,0,50,35] };
+const PRESETS = { portrait:[0,10,0,65,30], beard:[0,45,0,60,60], minimal:[25,40,0,65,45], detailed:[0,20,0,50,70], original:[0,0,0,50,35] };
 const PKEYS = ['skin', 'smooth', 'texture', 'detail', 'cleanup'];
 function aiDefaults(ai) {
   const st = { ...DEFAULT_STYLE, background:0 };
   if (!ai) return st;
   Object.assign(st, ai.suggest || {});
-  if (/portrait|person|people|face|human/i.test(ai.category || '')) PKEYS.forEach((k, i) => st[k] = PRESETS.beard[i]);
+  if (/portrait|person|people|face|human/i.test(ai.category || '')) PKEYS.forEach((k, i) => st[k] = PRESETS.portrait[i]);
   return st;
 }
 function syncPresetUI() {
@@ -525,16 +526,16 @@ function syncPresetUI() {
 $$('#presets [data-p]').forEach(b => b.onclick = () => { PRESETS[b.dataset.p].forEach((v, i) => S.style[PKEYS[i]] = v); S.styleTouched = true; syncStyleUI(); scheduleRender(50); });   // [skin, smooth, texture]
 function syncFilterUI() {
   if (typeof syncPresetUI === 'function') syncPresetUI();
-  for (const k of ['skin', 'smooth', 'texture']) { $('#f-' + k).value = S.style[k]; $('#o-' + k).textContent = S.style[k]; }
+  for (const k of ['stubble', 'skin', 'smooth', 'texture']) { $('#f-' + k).value = S.style[k]; $('#o-' + k).textContent = S.style[k]; }
   $$('#fpresets [data-f]').forEach(b => { const f = FILTERS[b.dataset.f]; b.classList.toggle('active', f[0] == S.style.skin && f[1] == S.style.smooth && f[2] == S.style.texture); });
 }
-for (const k of ['skin', 'smooth', 'texture']) $('#f-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(400); };
+for (const k of ['stubble', 'skin', 'smooth', 'texture']) $('#f-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(400); };
 $$('#fpresets [data-f]').forEach(b => b.onclick = () => { const f = FILTERS[b.dataset.f]; [S.style.skin, S.style.smooth, S.style.texture] = f; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(50); });
 $('#save-prep').onclick = async () => {
   const b = $('#save-prep'), t = b.textContent; b.disabled = true; b.textContent = 'Preparing…';
   try {
     await ensurePrepared();
-    const r = await fetch('/api/filtered', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ jobId:S.job.id, smooth:S.style.smooth, texture:S.style.texture, skin:S.style.skin }) });
+    const r = await fetch('/api/filtered', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ jobId:S.job.id, smooth:S.style.smooth, texture:S.style.texture, skin:S.style.skin, stubble:S.style.stubble }) });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Could not prepare the photo');
     const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = 'tattoo-photo-prepared.jpg'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   } catch (e) { say(e.message, 'error'); }

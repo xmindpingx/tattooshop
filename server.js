@@ -136,10 +136,10 @@ app.post('/api/render', wrap(async (req, res) => {
   const base = `${id}-${n}`;
   const r = await worker.call('render', {
     dir: jobDir(id), outbase: path.join(OUTPUT_DIR, base),
-    detail: num(b.detail, 50), weightMm: num(b.weightMm, 0.4), cleanup: num(b.cleanup, 35),
+    detail: num(b.detail, 65), weightMm: num(b.weightMm, 0.4), cleanup: num(b.cleanup, 30),
     background: num(b.background, 0), sizeIn: num(b.sizeIn, 5), mirror: !!b.mirror,
-    smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0),
-    fills: num(b.fills, 0), shadows: num(b.shadows, 0), varw: num(b.varw, 0)
+    smooth: num(b.smooth, 10), texture: num(b.texture, 0), skin: num(b.skin, 0),
+    fills: num(b.fills, 40), shadows: num(b.shadows, 0), varw: num(b.varw, 60), stubble: num(b.stubble, 50)
   });
   fs.readdir(OUTPUT_DIR, (_e, files) => (files || []).filter(f => f.startsWith(id + '-') && !f.startsWith(base) && Date.now() - fs.statSync(path.join(OUTPUT_DIR, f)).mtimeMs > 60000)
     .forEach(f => fs.unlink(path.join(OUTPUT_DIR, f), () => {})));
@@ -150,7 +150,7 @@ app.post('/api/render', wrap(async (req, res) => {
 app.post('/api/filtered', wrap(async (req, res) => {
   const id = need(req), b = req.body, num = (v, d) => Number.isFinite(+v) ? Math.min(100, Math.max(0, +v)) : d;
   const out = path.join(jobDir(id), 'filtered.jpg');
-  await worker.call('filtered', { dir: jobDir(id), out, smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0) });
+  await worker.call('filtered', { dir: jobDir(id), out, smooth: num(b.smooth, 0), texture: num(b.texture, 0), skin: num(b.skin, 0), stubble: num(b.stubble, 0) });
   res.download(out, 'tattoo-photo-prepared.jpg');
 }));
 

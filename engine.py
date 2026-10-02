@@ -198,6 +198,45 @@ def cmd_segment(dir, points=None, warm=False):
 
 
 # ───────────────────────────── line art ─────────────────────────────
+def relight(rgb, amount=0):
+    """Even out uneven lighting so a shadowed half of the face is not traced as edges (0..100)."""
+    a = float(amount) / 100.0
+    if a <= 0:
+        return rgb
+    lab = cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB).astype(np.float32)
+    L = lab[..., 0]
+    base = cv2.GaussianBlur(L, (0, 0), max(rgb.shape[:2]) * 0.06) + 1.0
+    flat = L / base * float(base.mean())
+    lab[..., 0] = np.clip(L * (1 - a) + flat * a, 0, 255)
+    return cv2.cvtColor(lab.astype(np.uint8), cv2.COLOR_LAB2RGB)
+
+PROTECT = 30     # local contrast above this (tattoo ink, metal jewellery) is never smoothed as stubble
+def destubble(rgb, amount=0):
+    """Smooth only patches of dense fine hair texture (stubble, beard), leaving eyes, tattoos and jewellery sharp (0..100)."""
+    a = float(amount) / 100.0
+    if a <= 0:
+        return rgb
+    H, W = rgb.shape[:2]; L = max(H, W)
+    g = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    k = 2 * max(1, round(L * 0.004)) + 1
+    hp = np.abs(g.astype(np.float32) - cv2.medianBlur(g, k).astype(np.float32))
+    hp[hp > 60] = 60                                                     # strong single edges (tattoo lines, rings) count less
+    energy = cv2.GaussianBlur(hp, (0, 0), L * 0.012)
+    lo, hi = np.percentile(energy, 60), np.percentile(energy, 92)
+    m = np.clip((energy - lo) / max(1e-3, hi - lo), 0, 1)
+    m = cv2.GaussianBlur(m, (0, 0), L * 0.008)
+    hp_raw = np.abs(g.astype(np.float32) - cv2.medianBlur(g, k).astype(np.float32))
+    strong = (hp_raw > PROTECT).astype(np.uint8)                          # tattoo ink / metal jewellery: far more contrast than hair
+    strong = drop_small(strong, max(4, (L * 0.004) ** 2))
+    strong = cv2.GaussianBlur(cv2.dilate(strong, disk(L * 0.006)).astype(np.float32), (0, 0), L * 0.003)
+    m = (m * (1 - np.clip(strong, 0, 1)))[..., None] * min(1.0, a * 1.4)
+    r = max(1, round(L * (0.002 + 0.005 * a)))
+    sm = cv2.morphologyEx(rgb, cv2.MORPH_CLOSE, disk(r))
+    sm = cv2.medianBlur(sm, 2 * max(1, round(L * (0.002 + 0.004 * a))) + 1)
+    for _ in range(2):
+        sm = cv2.bilateralFilter(sm, 0, 30 + 30 * a, max(3.0, L * 0.008))
+    return (sm * m + rgb * (1 - m)).astype(np.uint8)
+
 def prefilter(rgb, smooth=0, texture=0, skin=0):
     """Simplify the photo before the line model sees it, so skin pores, stubble and fur don't become scribbles.
     smooth  0..100: removes small dark specks (stubble, pores) then softens skin while keeping real edges.
@@ -252,10 +291,10 @@ def line_art(rgb, model='contour-1024.onnx'):
     out = s.run(None, {inp.name: (canvas.astype(np.float32) / 255.0).transpose(2, 0, 1)[None]})[0][0, 0]
     return 1.0 - np.clip(out[y0:y0 + h, x0:x0 + w], 0.0, 1.0)
 
-def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0):
+def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0, light=0, stubble=0):
     """Line drawing of the subject alone, run on a tight crop so it gets the model's full resolution."""
     box = padded_box(mask)
-    p = P(d, f'ink_s{ver}_{int(smooth)}_{int(texture)}_{int(skin)}.npy')
+    p = P(d, f'ink_s{ver}_{int(smooth)}_{int(texture)}_{int(skin)}_{int(light)}_{int(stubble)}.npy')
     if os.path.exists(p):
         return np.load(p).astype(np.float32), box
     y0, y1, x0, x1 = box
@@ -270,7 +309,7 @@ def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0):
         comp = (rgb_c * alpha + 255 * (1 - alpha)).astype(np.uint8)
     else:
         comp = rgb_c
-    ink = line_art(prefilter(comp, smooth, texture, skin))
+    ink = line_art(prefilter(destubble(relight(comp, light), stubble), smooth, texture, skin))
     np.save(p, ink.astype(np.float16))
     return ink, box
 
@@ -297,10 +336,9 @@ def ink_full(d, src, smooth=0, texture=0, skin=0):
 
 
 # ───────────────────────────── render ─────────────────────────────
-def cmd_render(dir, outbase, detail=45, weightMm=0.45, cleanup=50, background=0, sizeIn=5.0, mirror=False, smooth=30, texture=0, skin=0, fills=0, shadows=0, varw=0):
+def cmd_render(dir, outbase, detail=65, weightMm=0.4, cleanup=30, background=0, sizeIn=5.0, mirror=False, smooth=10, texture=0, skin=0, fills=40, shadows=0, varw=60, light=0, stubble=50):
     T0 = time.time(); tm = {}
     detail, cleanup, background = [float(np.clip(v, 0, 100)) for v in (detail, cleanup, background)]
-    smooth = float(np.clip(max(smooth, 20), 0, 100))   # never run the line model on completely unfiltered skin
     fills, shadows, varw = [float(np.clip(v, 0, 100)) for v in (fills, shadows, varw)]
     weightMm = float(np.clip(weightMm, 0.1, 2.0)); sizeIn = float(np.clip(sizeIn, 0.5, 14))
     meta = load_meta(dir); ver = meta.get('ver', 1)
@@ -335,7 +373,7 @@ def cmd_render(dir, outbase, detail=45, weightMm=0.45, cleanup=50, background=0,
 
     # subject lines
     t1 = time.time()
-    ink_s, (cy0, cy1, cx0, cx1) = ink_subject(dir, src, mask, ver, smooth, texture, skin)
+    ink_s, (cy0, cy1, cx0, cx1) = ink_subject(dir, src, mask, ver, smooth, texture, skin, float(np.clip(light, 0, 100)), float(np.clip(stubble, 0, 100)))
     tm['draw_subject'] = time.time() - t1
     hc, wc = cy1 - cy0, cx1 - cx0
     hs, ws = max(1, round(hc * k)), max(1, round(wc * k))
@@ -409,11 +447,13 @@ def cmd_render(dir, outbase, detail=45, weightMm=0.45, cleanup=50, background=0,
         gc = np.ones((Ho, Wo), np.float32)
         gc[ya:yb, xa:xb] = gr[ya - oy:yb - oy, xa - ox:xb - ox]
         inner = cv2.erode(m, disk(ref * 0.03))                                     # keep fills off the silhouette edge
+        gl = gc / (cv2.GaussianBlur(gc, (0, 0), max(3.0, ref * 0.06)) + 0.04)   # local darkness: ignores lighting gradients
         vals = gc[inner > 0]
+        lvals = gl[inner > 0]
         if vals.size > 100:
             if fills > 0:
-                t = np.percentile(vals, 1.5 + 9.0 * fills / 100.0)
-                dk = ((gc < t) & (inner > 0)).astype(np.uint8)
+                t = np.percentile(lvals, 1.5 + 9.0 * fills / 100.0)
+                dk = ((gl < t) & (inner > 0)).astype(np.uint8)
                 dk = cv2.morphologyEx(dk, cv2.MORPH_OPEN, disk(max(2, ref * 0.006)))
                 dk = cv2.morphologyEx(dk, cv2.MORPH_CLOSE, disk(max(2, ref * 0.008)))
                 dk = drop_small(dk, (0.012 * ref) ** 2)
@@ -505,11 +545,11 @@ def cmd_render(dir, outbase, detail=45, weightMm=0.45, cleanup=50, background=0,
             'timing': {a: round(b, 2) for a, b in tm.items()}}
 
 
-def cmd_filtered(dir, out, smooth=0, texture=0, skin=0):
+def cmd_filtered(dir, out, smooth=0, texture=0, skin=0, stubble=0):
     """Save the photo as the line model sees it (after the pre-filters), full resolution JPEG."""
     src = load_src(dir)
     H, W = src.shape[:2]
-    img = prefilter(src, smooth, texture, skin)
+    img = prefilter(destubble(src, stubble), smooth, texture, skin)
     if img.shape[:2] != (H, W):
         img = cv2.resize(img, (W, H), interpolation=cv2.INTER_CUBIC)
     Image.fromarray(img).save(out, 'JPEG', quality=95)
