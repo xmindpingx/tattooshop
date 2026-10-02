@@ -206,15 +206,20 @@ header .spacer{flex:1}
   <!-- Post-process: photo sliders -->
   <div id="post-photo">
     <p class="sec" style="margin:0;width:100%">Photo Processing</p>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;width:100%;margin-bottom:4px">
+      <button class="chip on" id="pp-portrait" onclick="applyPhotoPreset('portrait')">🖼 Portrait</button>
+      <button class="chip" id="pp-bold" onclick="applyPhotoPreset('bold')">🔲 Bold</button>
+      <button class="chip" id="pp-fineline" onclick="applyPhotoPreset('fineline')">✏️ Fine Line</button>
+    </div>
     <div class="slider-group">
       <label>Detail</label>
-      <input type="range" id="sl-detail" min="20" max="90" value="65" oninput="onSlider(this,'detail')">
-      <span id="sv-detail">65</span>
+      <input type="range" id="sl-detail" min="20" max="90" value="80" oninput="onSlider(this,'detail')">
+      <span id="sv-detail">80</span>
     </div>
     <div class="slider-group">
       <label>Cleanup</label>
-      <input type="range" id="sl-cleanup" min="15" max="70" value="30" oninput="onSlider(this,'cleanup')">
-      <span id="sv-cleanup">30</span>
+      <input type="range" id="sl-cleanup" min="15" max="70" value="20" oninput="onSlider(this,'cleanup')">
+      <span id="sv-cleanup">20</span>
     </div>
     <div class="slider-group">
       <label>Smooth</label>
@@ -228,13 +233,13 @@ header .spacer{flex:1}
     </div>
     <div class="slider-group">
       <label>Skin</label>
-      <input type="range" id="sl-skin" min="0" max="15" value="0" oninput="onSlider(this,'skin')">
-      <span id="sv-skin">0</span>
+      <input type="range" id="sl-skin" min="0" max="15" value="5" oninput="onSlider(this,'skin')">
+      <span id="sv-skin">5</span>
     </div>
     <div class="slider-group">
       <label>Fills</label>
-      <input type="range" id="sl-fills" min="0" max="50" value="5" oninput="onSlider(this,'fills')">
-      <span id="sv-fills">5</span>
+      <input type="range" id="sl-fills" min="0" max="50" value="0" oninput="onSlider(this,'fills')">
+      <span id="sv-fills">0</span>
     </div>
     <div class="slider-group">
       <label>Shadows</label>
@@ -243,8 +248,8 @@ header .spacer{flex:1}
     </div>
     <div class="slider-group">
       <label>Stubble</label>
-      <input type="range" id="sl-stubble" min="0" max="65" value="30" oninput="onSlider(this,'stubble')">
-      <span id="sv-stubble">30</span>
+      <input type="range" id="sl-stubble" min="0" max="65" value="20" oninput="onSlider(this,'stubble')">
+      <span id="sv-stubble">20</span>
     </div>
     <button onclick="doRender()" style="background:var(--accent);color:#0d0d0f;padding:6px 14px;border-radius:6px;font-weight:700;font-size:.8rem">↺ Re-render</button>
   </div>
@@ -580,7 +585,7 @@ const S = {
   aiCfg:7, aiCnScale:0.75, aiSteps:30, aiCount:1, aiGoal:'stencil',
   sizeIn:5, nolistOn:true, hasStencil:false, currentBlob:null,
   crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
-  detail:65, cleanup:30, smooth:10, texture:0, skin:0, fills:5, shadows:0, stubble:30,
+  detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20,
   cnScale:0.75, cfg:7, steps:30, loraW:0.8, candidates:1
 };
 
@@ -758,6 +763,27 @@ function onSlider(el, key) {
   S[key] = parseFloat(el.value);
   const sv = document.getElementById('sv-' + key);
   if (sv) sv.textContent = el.value;
+}
+
+const PHOTO_PRESETS = {
+  portrait: {detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20},
+  bold:     {detail:65, cleanup:35, smooth:15, texture:0, skin:0, fills:20, shadows:5, stubble:30},
+  fineline: {detail:85, cleanup:15, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:15}
+};
+function applyPhotoPreset(name) {
+  const p = PHOTO_PRESETS[name]; if (!p) return;
+  Object.entries(p).forEach(([key, val]) => {
+    S[key] = val;
+    const sl = document.getElementById('sl-' + key);
+    if (sl) sl.value = val;
+    const sv = document.getElementById('sv-' + key);
+    if (sv) sv.textContent = val;
+  });
+  ['portrait','bold','fineline'].forEach(n => {
+    const b = document.getElementById('pp-' + n);
+    if (b) b.classList.toggle('on', n === name);
+  });
+  if (S.hasPhoto) doRender();
 }
 
 /* ── Generate dispatcher ───────────────────────────────────────────── */
