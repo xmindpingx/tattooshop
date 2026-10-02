@@ -460,18 +460,18 @@ def cmd_render(dir, outbase, detail=65, weightMm=0.4, cleanup=30, background=0, 
         lvals = gl[inner > 0]
         if vals.size > 100:
             if fills > 0:
-                t = np.percentile(lvals, 1.5 + 9.0 * fills / 100.0)
+                t = np.percentile(lvals, 1.0 + 7.0 * fills / 100.0)
                 dk = ((gl < t) & (inner > 0)).astype(np.uint8)
                 dk = cv2.morphologyEx(dk, cv2.MORPH_OPEN, disk(max(2, ref * 0.006)))
                 dk = cv2.morphologyEx(dk, cv2.MORPH_CLOSE, disk(max(2, ref * 0.008)))
                 dk = drop_small(dk, (0.012 * ref) ** 2)
                 nlab, lab, st, _c = cv2.connectedComponentsWithStats(dk, connectivity=8)
                 for i in range(1, nlab):                                           # one huge dark region is a shadow, not a feature
-                    if st[i, cv2.CC_STAT_AREA] > (0.22 * ref) ** 2:
+                    if st[i, cv2.CC_STAT_AREA] > (0.18 * ref) ** 2:
                         dk[lab == i] = 0
                 solid = dk
             if shadows > 0:
-                tsh = np.percentile(vals, 12 + 26 * shadows / 100.0)
+                tsh = np.percentile(vals, 10 + 23 * shadows / 100.0)
                 sh = ((gc < tsh) & (inner > 0)).astype(np.uint8)
                 sh = cv2.morphologyEx(sh, cv2.MORPH_OPEN, disk(max(2, ref * 0.012)))
                 sh = cv2.morphologyEx(sh, cv2.MORPH_CLOSE, disk(max(2, ref * 0.02)))
