@@ -314,10 +314,10 @@ def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0, light=0, stubble
     # Canny supplement: catches subtle lip/skin-tone edges and thin metallic rings the ONNX model misses.
     gray = cv2.cvtColor(prefilt, cv2.COLOR_RGB2GRAY)
     lo, hi = max(10, int(np.percentile(gray, 20))), min(200, int(np.percentile(gray, 80)))
-    canny = cv2.Canny(gray, lo * 0.3, hi * 0.55)        # wide dynamic range to pick up both dark lines & bright metal
+    canny = cv2.Canny(gray, lo * 0.25, hi * 0.45)       # lower thresholds for more complete edge capture
     canny_f = cv2.GaussianBlur(canny.astype(np.float32) / 255.0, (0, 0), 0.6)
     canny_r = cv2.resize(canny_f, (ink.shape[1], ink.shape[0]), interpolation=cv2.INTER_AREA)
-    ink = np.clip(ink + canny_r * 0.45, 0.0, 1.0)       # add 45% of Canny to ONNX; enough to lift lips above threshold
+    ink = np.clip(ink + canny_r * 0.65, 0.0, 1.0)       # add 65% of Canny to ONNX; stronger supplement for overlay accuracy
     np.save(p, ink.astype(np.float16))
     return ink, box
 

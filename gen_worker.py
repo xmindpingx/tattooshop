@@ -81,14 +81,14 @@ def control_image(d, long_edge=1024):
     # Blend: apply closed image in dark regions (beard/shadow), keep original in bright regions (highlights)
     alpha = np.clip((255 - g.astype(np.float32)) / 180.0, 0, 1)   # weight = 1 where dark, 0 where bright
     g = (g_closed * alpha + g * (1 - alpha)).astype(np.uint8)
-    # Strong bilateral chain to smooth skin while preserving tattoo/feature edges
-    g = cv2.medianBlur(g, 7)
-    for _ in range(4):
-        g = cv2.bilateralFilter(g, 0, 55, 11)
-    e = cv2.Canny(g, 20, 70)
+    # Moderate bilateral smoothing — fewer passes keeps edges sharper for overlay accuracy
+    g = cv2.medianBlur(g, 5)
+    for _ in range(2):
+        g = cv2.bilateralFilter(g, 0, 40, 8)
+    e = cv2.Canny(g, 12, 50)                                                     # lower thresholds = more complete edge capture
     e = cv2.morphologyEx(e, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)))
     n, lab, st, _ = cv2.connectedComponentsWithStats(e, connectivity=8)           # drop specks (stubble / pores)
-    keep = np.zeros(n, bool); keep[1:] = st[1:, cv2.CC_STAT_AREA] >= 0.00015 * tw * th   # slightly higher threshold = fewer hair strands
+    keep = np.zeros(n, bool); keep[1:] = st[1:, cv2.CC_STAT_AREA] >= 0.00006 * tw * th   # lower = keep more fine lines
     e = (keep[lab] * 255).astype(np.uint8)
     cs, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(e, cs, -1, 255, 3)

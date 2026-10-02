@@ -251,6 +251,11 @@ header .spacer{flex:1}
       <input type="range" id="sl-stubble" min="0" max="65" value="20" oninput="onSlider(this,'stubble')">
       <span id="sv-stubble">20</span>
     </div>
+    <div class="slider-group">
+      <label title="Even out uneven lighting so a shadowed half of the face is not traced as dark edges. 0 = off; higher values flatten shadows before edge detection.">Lighting ⓘ</label>
+      <input type="range" id="sl-light" min="0" max="50" value="0" oninput="onSlider(this,'light')">
+      <span id="sv-light">0</span>
+    </div>
     <button onclick="doRender()" style="background:var(--accent);color:#0d0d0f;padding:6px 14px;border-radius:6px;font-weight:700;font-size:.8rem">↺ Re-render</button>
   </div>
 
@@ -415,7 +420,7 @@ header .spacer{flex:1}
         <button class="chip" id="vc-2" onclick="setVarCount(2)">2</button>
         <button class="chip" id="vc-3" onclick="setVarCount(3)">3</button>
         <button class="chip" id="vc-4" onclick="setVarCount(4)">4</button>
-        <span style="font-size:.7rem;color:var(--muted)">(multiple = Candidates tab)</span>
+        <span style="font-size:.7rem;color:var(--muted)">(results shown in Candidates tab)</span>
       </div>
     </div>
 
@@ -423,7 +428,7 @@ header .spacer{flex:1}
     <div class="tab-pane" data-tab="previews">
       <div id="candidates-empty" style="color:var(--muted);text-align:center;padding:40px 20px">
         <div style="font-size:2.5rem;margin-bottom:8px">🎞</div>
-        <p>Set Variations to 2–4 in the AI Redraw tab, then generate.</p>
+        <p>Generate a stencil to see results here.</p>
         <p style="margin-top:8px;font-size:.75rem">Each result appears here — click one to make it your active stencil.</p>
       </div>
       <div id="candidates-grid" style="display:none"></div>
@@ -591,11 +596,11 @@ const S = {
   style:'', textMode:'outline', selectedFont:'Bebas Neue',
   activeChips:new Set(), activeAiChips:new Set(),
   job:null, aiModel:'sdxl', aiLora:'tattoo', aiLoraW:0.8,
-  aiCfg:7, aiCnScale:0.75, aiSteps:30, aiCount:1, aiGoal:'stencil',
+  aiCfg:7, aiCnScale:0.75, aiSteps:30, aiCount:2, aiGoal:'stencil',
   sizeIn:5, nolistOn:true, hasStencil:false, currentBlob:null,
   crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
-  detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20,
-  cnScale:0.75, cfg:7, steps:30, loraW:0.8, candidates:1
+  detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20, light:0,
+  cnScale:0.75, cfg:7, steps:30, loraW:0.8, candidates:2
 };
 
 /* ── Font list ─────────────────────────────────────────────────────── */
@@ -775,9 +780,9 @@ function onSlider(el, key) {
 }
 
 const PHOTO_PRESETS = {
-  portrait: {detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20},
-  bold:     {detail:65, cleanup:35, smooth:15, texture:0, skin:0, fills:20, shadows:5, stubble:30},
-  fineline: {detail:85, cleanup:15, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:15}
+  portrait: {detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20, light:0},
+  bold:     {detail:65, cleanup:35, smooth:15, texture:0, skin:0, fills:20, shadows:5, stubble:30, light:0},
+  fineline: {detail:85, cleanup:15, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:15, light:0}
 };
 function applyPhotoPreset(name) {
   const p = PHOTO_PRESETS[name]; if (!p) return;
@@ -842,7 +847,7 @@ function doRender() {
   const body = {
     jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
     smooth: S.smooth, texture: S.texture, skin: S.skin,
-    fills: S.fills, shadows: S.shadows, stubble: S.stubble
+    fills: S.fills, shadows: S.shadows, stubble: S.stubble, light: S.light
   };
   fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
   .then(r => r.json())
@@ -897,12 +902,18 @@ function pollJob(id) {
           clearInterval(interval);
           S.genJobId = null;
           hideOverlay();
-          if (d.images && d.images.length > 1) {
-            loadCandidates(id, d.images.map(img => img.url || img));
+          // Collect all images (batch or single) and always show in candidates tab
+          let allUrls = [];
+          if (d.images && d.images.length > 0) {
+            allUrls = d.images.map(img => img.url || img);
+          } else if (d.image) {
+            allUrls = [d.image];
+          }
+          if (allUrls.length > 0) {
+            showStencil(allUrls[0]);
+            loadCandidates(id, allUrls);
           } else {
-            const url = d.image || (d.images && d.images[0] && (d.images[0].url || d.images[0]));
-            if (url) showStencil(url);
-            else showToast('Generation complete but no image returned.', 4000);
+            showToast('Generation complete but no image returned.', 4000);
           }
         } else if (d.status === 'error') {
           clearInterval(interval);
@@ -965,7 +976,7 @@ function doDestubble() {
   showOverlay('Removing stubble…', 30);
   fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
-      smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows, stubble: 0 }) })
+      smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows, stubble: 0, light: S.light }) })
   .then(r => r.json())
   .then(d => { hideOverlay(); const url = d.files?.png || d.url; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
   .catch(e => { hideOverlay(); showToast('Failed: ' + e.message, 4000); });
@@ -976,7 +987,8 @@ function doRelight() {
   showOverlay('Relighting…', 30);
   fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
-      smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows }) })
+      smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows,
+      stubble: S.stubble, light: Math.max(S.light, 30) }) })
   .then(r => r.json())
   .then(d => { hideOverlay(); const url = d.files?.png || d.url; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
   .catch(e => { hideOverlay(); showToast('Failed: ' + e.message, 4000); });
@@ -1774,6 +1786,8 @@ function init() {
   // Default tab
   setTab('text');
   setTextMode('outline');
+  // Default variation count = 2 so candidates tab always populates
+  setVarCount(2);
   // Nolist badge color
   const badge = document.getElementById('nolist-badge');
   if (badge) badge.style.color = 'var(--green)';

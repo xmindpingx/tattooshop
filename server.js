@@ -140,7 +140,7 @@ app.post('/api/render', wrap(async (req, res) => {
     detail: rng(b.detail, 65, 20, 90), weightMm: rng(b.weightMm, 0.4, 0.35, 0.7), cleanup: rng(b.cleanup, 30, 15, 70),
     background: num(b.background, 0), sizeIn: num(b.sizeIn, 5), mirror: !!b.mirror,
     smooth: rng(b.smooth, 10, 10, 35), texture: rng(b.texture, 0, 0, 10), skin: rng(b.skin, 0, 0, 15),
-    fills: rng(b.fills, 40, 0, 50), shadows: rng(b.shadows, 0, 0, 15), varw: rng(b.varw, 60, 0, 100), stubble: rng(b.stubble, 50, 0, 65)
+    fills: rng(b.fills, 40, 0, 50), shadows: rng(b.shadows, 0, 0, 15), varw: rng(b.varw, 60, 0, 100), stubble: rng(b.stubble, 50, 0, 65), light: rng(b.light, 0, 0, 50)
   });
   fs.readdir(OUTPUT_DIR, (_e, files) => (files || []).filter(f => f.startsWith(id + '-') && !f.startsWith(base) && Date.now() - fs.statSync(path.join(OUTPUT_DIR, f)).mtimeMs > 60000)
     .forEach(f => fs.unlink(path.join(OUTPUT_DIR, f), () => {})));
