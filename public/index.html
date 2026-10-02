@@ -988,26 +988,30 @@ function doFlash() {
 }
 
 function doDestubble() {
+  if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
   if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
+  S._rendering = true;
   showOverlay('Removing stubble…', 30);
   fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
       smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows, stubble: 0, light: S.light }) })
   .then(r => r.json())
-  .then(d => { hideOverlay(); const url = d.files?.png || d.url; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
-  .catch(e => { hideOverlay(); showToast('Failed: ' + e.message, 4000); });
+  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (d.files?.pdf) S.lastServerPdf = d.files.pdf; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
+  .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 
 function doRelight() {
+  if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
   if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
+  S._rendering = true;
   showOverlay('Relighting…', 30);
   fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
       smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows,
       stubble: S.stubble, light: Math.max(S.light, 30) }) })
   .then(r => r.json())
-  .then(d => { hideOverlay(); const url = d.files?.png || d.url; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
-  .catch(e => { hideOverlay(); showToast('Failed: ' + e.message, 4000); });
+  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (d.files?.pdf) S.lastServerPdf = d.files.pdf; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
+  .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 
 /* ── Candidates grid ───────────────────────────────────────────────── */
@@ -1022,7 +1026,7 @@ function loadCandidates(jobId, images, autoSwitch) {
   if (empty) empty.style.display = 'none';
   grid.style.display = '';
   grid.innerHTML = images.map((url, i) =>
-    `<div class="cand-thumb" onclick="selectCandidate('${url}')">
+    `<div class="cand-thumb" data-url="${url}" onclick="selectCandidate(this.dataset.url)">
       <img src="${url}" alt="Candidate ${i+1}" loading="lazy">
       <div class="cand-label">Option ${i+1}</div>
     </div>`
@@ -1035,7 +1039,7 @@ function selectCandidate(url) {
   setTab('text');
   showToast('Candidate selected — ready to export!', 2500);
   document.querySelectorAll('.cand-thumb').forEach(t => {
-    t.classList.toggle('selected', t.querySelector('img').src.endsWith(url.split('/').pop()));
+    t.classList.toggle('selected', t.dataset.url === url);
   });
 }
 
