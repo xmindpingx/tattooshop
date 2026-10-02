@@ -709,6 +709,8 @@ function syncAiUi() {
   });
 }
 
+function onTextInput() {}
+
 /* ── Photo sliders ─────────────────────────────────────────────────── */
 function onSlider(el, key) {
   S[key] = parseFloat(el.value);
@@ -728,6 +730,7 @@ function onGenerate() {
 
 /* ── Text stencil ──────────────────────────────────────────────────── */
 function doTextStencil() {
+  if (S.textMode === 'ai') { showToast('AI lettering coming soon — use Outline Only for now.', 3000); return; }
   const textEl = document.getElementById('text-input');
   const text = textEl ? textEl.value.trim() : '';
   if (!text) { showToast('Enter some text first.', 2500); return; }
@@ -782,41 +785,62 @@ function doRender() {
 /* ── AI redraw ─────────────────────────────────────────────────────── */
 function doAiRedraw() {
   if (!S.hasStencil && !S.hasPhoto) { showToast('Generate or upload a stencil first.', 2500); return; }
-  const prompt = (document.getElementById('ai-prompt')?.value || '').trim();
-  const neg = (document.getElementById('ai-neg')?.value || '').trim();
+  if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
+  const prompt = (document.getElementById('prompt-pos')?.value || '').trim();
+  const negative = (document.getElementById('prompt-neg')?.value || '').trim();
   const nolist = S.nolistOn ? (document.getElementById('nolist-text')?.value || '') : '';
   showOverlay('AI Redraw starting…', 5);
   const body = {
-    prompt, neg, nolist, model: S.aiModel, lora: S.aiLora, loraW: S.aiLoraW,
-    cfg: S.aiCfg, cnScale: S.aiCnScale, steps: S.aiSteps, count: S.aiCount,
+    jobId: S.jobId, prompt, negative, nolist,
+    base: S.aiModel, lora: S.aiLora, loraWeight: S.aiLoraW,
+    guidance: S.aiCfg, scale: S.aiCnScale, steps: S.aiSteps, count: S.aiCount,
     goal: S.aiGoal, sizeIn: S.sizeIn
   };
   fetch('/api/gen/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
   .then(r => r.json())
   .then(d => {
     if (d.error) { hideOverlay(); showToast('Error: ' + d.error, 4000); return; }
-    S.genJobId = d.id;
-    pollJob(d.id);
+    S.genJobId = d.genId;
+    pollJob(d.genId);
   })
   .catch(e => { hideOverlay(); showToast('Request failed: ' + e.message, 4000); });
 }
 
 /* ── Job polling ───────────────────────────────────────────────────── */
 function pollJob(id) {
-  const es = new EventSource('/api/gen/status/' + id);
-  es.onmessage = e => {
-    try {
-      const d = JSON.parse(e.data);
-      if (d.progress !== undefined) setOverlayProgress(d.progress, d.msg || '');
-      if (d.done) {
-        es.close(); hideOverlay();
-        if (d.error) { showToast('Error: ' + d.error, 5000); return; }
-        if (d.images && d.images.length > 1) loadCandidates(id, d.images);
-        else if (d.url || d.path) showStencil(d.url || d.path);
-      }
-    } catch(_) {}
-  };
-  es.onerror = () => { es.close(); hideOverlay(); showToast('Connection lost during generation.', 4000); };
+  let elapsed = 0;
+  const interval = setInterval(() => {
+    elapsed += 2;
+    fetch('/api/gen/status/' + id)
+      .then(r => r.json())
+      .then(d => {
+        const pct = Math.min(90, 10 + elapsed * 2);
+        setOverlayProgress(pct, d.seconds ? Math.round(d.seconds) + 's elapsed' : '');
+        if (d.status === 'done') {
+          clearInterval(interval);
+          S.genJobId = null;
+          hideOverlay();
+          if (d.images && d.images.length > 1) {
+            loadCandidates(id, d.images.map(img => img.url || img));
+          } else {
+            const url = d.image || (d.images && d.images[0] && (d.images[0].url || d.images[0]));
+            if (url) showStencil(url);
+            else showToast('Generation complete but no image returned.', 4000);
+          }
+        } else if (d.status === 'error') {
+          clearInterval(interval);
+          S.genJobId = null;
+          hideOverlay();
+          showToast('Error: ' + (d.error || 'Generation failed'), 5000);
+        }
+      })
+      .catch(() => {
+        clearInterval(interval);
+        S.genJobId = null;
+        hideOverlay();
+        showToast('Connection lost during generation.', 4000);
+      });
+  }, 2000);
 }
 
 /* ── Show stencil in preview ───────────────────────────────────────── */
@@ -914,12 +938,13 @@ function toggleNolist() {
   S.nolistOn = !S.nolistOn;
   const body = document.getElementById('nolist-body');
   const badge = document.getElementById('nolist-badge');
-  if (body) body.style.display = S.nolistOn ? '' : 'none';
+  if (body) body.style.display = S.nolistOn ? 'block' : 'none';
   if (badge) { badge.textContent = S.nolistOn ? 'ON ▾' : 'OFF ▸'; badge.style.color = S.nolistOn ? 'var(--green)' : 'var(--muted)'; }
 }
 
 /* ── Size controls ─────────────────────────────────────────────────── */
 function onSizeChange(val) {
+  if (val === undefined) val = document.getElementById('size-in')?.value ?? 5;
   S.sizeIn = parseFloat(val);
   const cmEl = document.getElementById('size-cm');
   if (cmEl) cmEl.textContent = '(' + (S.sizeIn * 2.54).toFixed(1) + ' cm)';
@@ -943,10 +968,13 @@ function setCrArea(area) {
   refreshCR();
 }
 
-function onCrSlider(el, key) {
-  S[key] = parseFloat(el.value);
-  const lbl = document.getElementById('lbl-cr-' + key);
-  if (lbl) lbl.textContent = el.value + (key === 'crScale' ? '%' : '%');
+function onCrSlider() {
+  S.crScale = parseFloat(document.getElementById('sl-cr-scale')?.value || 100);
+  S.crOpacity = parseFloat(document.getElementById('sl-cr-opacity')?.value || 80);
+  const lbl1 = document.getElementById('lbl-cr-crScale');
+  const lbl2 = document.getElementById('lbl-cr-crOpacity');
+  if (lbl1) lbl1.textContent = S.crScale + '%';
+  if (lbl2) lbl2.textContent = S.crOpacity + '%';
   refreshCR();
 }
 
