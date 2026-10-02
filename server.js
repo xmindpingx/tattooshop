@@ -223,7 +223,7 @@ app.get('/api/gen/info', wrap(async (_q, res) => {
 app.post('/api/gen/start', wrap(async (req, res) => {
   if (!gen.available()) throw Object.assign(new Error('The AI redraw models are not installed on this server'), { status: 501 });
   const id = need(req), b = req.body;
-  const mode = b.mode === 'concept' ? 'concept' : 'stencil', T = PROMPTS[mode];
+  const mode = (b.goal === 'concept' || b.mode === 'concept') ? 'concept' : 'stencil', T = PROMPTS[mode];
   const ai = (aiJobs.get(id) || {}).ai;
   const subj = clip(b.subject, 80) || clip(ai && ai.subject, 80) || 'a person face';
   const extra = clip(b.extra, 200);
