@@ -416,10 +416,10 @@ def cmd_render(dir, outbase, detail=65, weightMm=0.4, cleanup=30, background=0, 
             cv2.drawContours(tex_outline, cs, -1, 1, 1)
 
     dist = cv2.distanceTransform(lines, cv2.DIST_L2, 5)        # hollow anything thicker than a pen stroke
-    fill_r = 3.0 * up
+    fill_r = max(3.0 * up, ref * 0.006)                        # at least ~0.6% of subject size so eyebrow-scale blobs always hollow
     core = (dist > fill_r).astype(np.uint8)
     if core.any():
-        lines &= 1 - cv2.dilate(core, disk(2 * fill_r - 2))
+        lines &= 1 - cv2.dilate(core, disk(max(1, 2 * fill_r - 2)))
     lines = drop_small(lines, (0.004 * ref) ** 2)
     skel = (cv2.ximgproc.thinning(lines * 255, thinningType=cv2.ximgproc.THINNING_ZHANGSUEN) > 0).astype(np.uint8)
     skel |= tex_outline
