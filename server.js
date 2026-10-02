@@ -194,19 +194,31 @@ const genJobs = new Map();
 
 const PROMPTS = {
   stencil: {
-    scale: 0.95, guidance: 8.0,
-    positive: s => `professional tattoo flash art of ${s}, 2D flat illustration, thick bold black outer contour, solid black ink fills on eyebrows pupils nostrils shadows, clean crisp black lines only, pure white background, no shading no gradients no grey fills, bold traditional american flash sheet style, high contrast black on white, front view centered, print-ready stencil`,
-    negative: 'photograph, photorealistic, 3d render, 3d shading, gradient shading, grey background, grey fill, airbrushed, realistic skin texture, noise, grain, blur, color, colorful, background color, dark background, wrinkles, pores, stubble texture, shadows, ambient occlusion, watermark, signature, border, frame, extra decorations, cropped, sketch lines, pencil lines'
+    scale: 0.85, guidance: 7.5, steps: 28,
+    positive: s => `A graphic vector tattoo flash art portrait of ${s}, inspired by bold traditional comic ink style, high-contrast lighting creating stark solid black shadow shapes, crisp white highlights, razor-sharp textures, rim lighting tracing the contours, deep black ink outlines, clean solid white background, 2D illustration style, stencil-ready`,
+    negative: 'gradients, soft shading, ambient light, global illumination, photorealism, gray midtones, blurry textures, photograph, photorealistic, 3d render, 3d shading, gradient shading, grey background, grey fill, airbrushed, realistic skin texture, noise, grain, blur, color, colorful, background color, dark background, wrinkles, pores, stubble texture, ambient occlusion, watermark, signature, border, frame, extra decorations, cropped, sketch lines, pencil lines'
   },
   concept: {
-    scale: 0.5, guidance: 6.5,
+    scale: 0.5, guidance: 6.5, steps: 28,
     positive: s => `concept art illustration of ${s}, tattoos and piercings clearly visible, detailed face, dramatic lighting, high quality digital painting, sharp focus, plain studio background`,
     negative: 'blurry, lowres, deformed, bad anatomy, extra limbs, text, watermark, signature'
   }
 };
+const LORA_TRIGGER = { tattoo: 'tattoo', design: 'Tattoo_gen' };
 const clip = (v, n) => String(v || '').replace(/[^\w\s,.'-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+const numIn = (v, d, lo, hi) => Math.min(hi, Math.max(lo, Number.isFinite(+v) ? +v : d));
 
-app.get('/api/gen/info', (_q, res) => res.json({ available: gen.available(), templates: { stencil: PROMPTS.stencil.positive('{subject}'), concept: PROMPTS.concept.positive('{subject}') } }));
+let genModelsCache = null;
+app.get('/api/gen/info', wrap(async (_q, res) => {
+  if (!gen.available()) return res.json({ available: false });
+  if (!genModelsCache) genModelsCache = await gen.call('models', {}).catch(() => ({ bases: ['sdxl'], loras: ['tattoo'] }));
+  res.json({
+    available: true, models: genModelsCache,
+    templates: { stencil: PROMPTS.stencil.positive('{subject}'), concept: PROMPTS.concept.positive('{subject}') },
+    negatives: { stencil: PROMPTS.stencil.negative, concept: PROMPTS.concept.negative },
+    defaults: { scale: PROMPTS.stencil.scale, guidance: PROMPTS.stencil.guidance, steps: PROMPTS.stencil.steps, loraWeight: 0.65 }
+  });
+}));
 
 app.post('/api/gen/start', wrap(async (req, res) => {
   if (!gen.available()) throw Object.assign(new Error('The AI redraw models are not installed on this server'), { status: 501 });
@@ -215,29 +227,51 @@ app.post('/api/gen/start', wrap(async (req, res) => {
   const ai = (aiJobs.get(id) || {}).ai;
   const subj = clip(b.subject, 80) || clip(ai && ai.subject, 80) || 'a person face';
   const extra = clip(b.extra, 200);
+  const base = ['sdxl', 'juggernaut'].includes(b.base) ? b.base : 'sdxl';
+  const lora = ['tattoo', 'design', 'none'].includes(b.lora) ? b.lora : 'tattoo';
+  const loraWeight = numIn(b.loraWeight, 0.65, 0.1, 1.2);
+  const scale = numIn(b.scale, T.scale, 0.3, 1.0);          // ControlNet weight
+  const guidance = numIn(b.guidance, T.guidance, 1, 15);     // CFG
+  const steps = Math.round(numIn(b.steps, T.steps, 10, 50));
+  const count = Math.round(numIn(b.count, 1, 1, 4));         // preview candidates
+  const trigger = lora !== 'none' ? LORA_TRIGGER[lora] : null;
+  let prompt = clip(b.prompt, 900) || (T.positive(subj) + (extra ? ', ' + extra : ''));
+  if (trigger && !new RegExp(trigger, 'i').test(prompt)) prompt = trigger + ', ' + prompt;
+  const negative = clip(b.negative, 900) || T.negative;
   const gid = uuidv4().slice(0, 8);
-  const out = path.join(jobDir(id), `gen_${gid}.png`);
-  const prompt = clip(b.prompt, 700) || (T.positive(subj) + (extra ? ', ' + extra : ''));
-  genJobs.set(gid, { status: 'running', mode, job: id, started: Date.now(), prompt });
-  axios.post(`${OLLAMA_URL}/api/generate`, { model: OLLAMA_MODEL, keep_alive: 0 }, { timeout: 15000 }).catch(() => {})     // free VRAM from the vision model
-    .then(() => new Promise(r => setTimeout(r, 1500)))
-    .then(() => gen.call('generate', { dir: jobDir(id), out, prompt, negative: T.negative, scale: T.scale, guidance: T.guidance, steps: 28, seed: Number.isFinite(+b.seed) ? +b.seed : null }))
-    .then(r => { genJobs.set(gid, { status: 'done', mode, job: id, image: `/api/gen/image/${id}/${gid}`, seconds: r.seconds, prompt }); console.log(`[gen ${gid}] ${mode} done in ${r.seconds}s`); })
-    .catch(e => { console.error('[gen]', e.message); genJobs.set(gid, { status: 'error', mode, job: id, error: e.message }); });
-  res.json({ genId: gid, mode, prompt });
+  const genArgs = { dir: jobDir(id), prompt, negative, scale, guidance, steps, base, lora, loraWeight };
+  genJobs.set(gid, { status: 'running', mode, job: id, started: Date.now(), prompt, count });
+  const ready = axios.post(`${OLLAMA_URL}/api/generate`, { model: OLLAMA_MODEL, keep_alive: 0 }, { timeout: 15000 }).catch(() => {})     // free VRAM from the vision model
+    .then(() => new Promise(r => setTimeout(r, 1500)));
+  if (count > 1) {
+    const outs = Array.from({ length: count }, (_, i) => path.join(jobDir(id), `gen_${gid}_${i}.png`));
+    ready.then(() => gen.call('generate_batch', { ...genArgs, outs }, 420000 + count * 90000))
+      .then(r => {
+        const images = r.images.map((im, i) => ({ index: i, seed: im.seed, url: `/api/gen/image/${id}/${gid}_${i}` }));
+        genJobs.set(gid, { status: 'done', mode, job: id, images, seconds: r.seconds, prompt });
+        console.log(`[gen ${gid}] ${mode} x${count} done in ${r.seconds}s`);
+      })
+      .catch(e => { console.error('[gen]', e.message); genJobs.set(gid, { status: 'error', mode, job: id, error: e.message }); });
+  } else {
+    const out = path.join(jobDir(id), `gen_${gid}.png`);
+    ready.then(() => gen.call('generate', { ...genArgs, out, seed: Number.isFinite(+b.seed) ? +b.seed : null }))
+      .then(r => { genJobs.set(gid, { status: 'done', mode, job: id, image: `/api/gen/image/${id}/${gid}`, seconds: r.seconds, prompt }); console.log(`[gen ${gid}] ${mode} done in ${r.seconds}s`); })
+      .catch(e => { console.error('[gen]', e.message); genJobs.set(gid, { status: 'error', mode, job: id, error: e.message }); });
+  }
+  res.json({ genId: gid, mode, prompt, count });
 }));
 
 app.get('/api/gen/status/:gid', (req, res) => res.json(genJobs.get(req.params.gid) || { status: 'none' }));
 
 app.get('/api/gen/image/:id/:gid', (req, res) => {
-  if (!UUID_RE.test(req.params.id) || !/^[0-9a-f]{8}$/.test(req.params.gid)) return res.sendStatus(404);
+  if (!UUID_RE.test(req.params.id) || !/^[0-9a-f]{8}(_[0-9]+)?$/.test(req.params.gid)) return res.sendStatus(404);
   res.sendFile(path.join(jobDir(req.params.id), `gen_${req.params.gid}.png`), e => e && !res.headersSent && res.sendStatus(404));
 });
 
 // turn an AI flash drawing into the print-ready 1-bit stencil
 app.post('/api/flash', wrap(async (req, res) => {
   const id = need(req), b = req.body, n = ++renderN, num = (v, d) => Number.isFinite(+v) ? +v : d;
-  if (!/^[0-9a-f]{8}$/.test(b.genId || '')) throw Object.assign(new Error('No AI drawing selected'), { status: 400 });
+  if (!/^[0-9a-f]{8}(_[0-9]+)?$/.test(b.genId || '')) throw Object.assign(new Error('No AI drawing selected'), { status: 400 });
   const base = `${id}-f${n}`;
   const r = await worker.call('flash', {
     gen: path.join(jobDir(id), `gen_${b.genId}.png`), outbase: path.join(OUTPUT_DIR, base),

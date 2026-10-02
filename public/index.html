@@ -177,9 +177,45 @@ footer a { color:var(--accent); text-decoration:none; }
         <button class="chip active" data-g="stencil" title="Black-and-white flash linework you can print as a stencil">Stencil / flash for a tattoo artist</button>
         <button class="chip" data-g="concept" title="A picture of a character who has tattoos. Not a printable stencil">Concept art (character with tattoos)</button>
       </div>
-      <label for="gen-prompt" class="hint" style="display:block;margin:6px 0 4px">Prompt template. Edit freely; <b>{subject}</b> is replaced by what the AI sees in your photo.</label>
+      <label for="gen-prompt" class="hint" style="display:block;margin:6px 0 4px">Prompt. Edit freely; <b>{subject}</b> is replaced by what the AI sees in your photo.</label>
       <textarea id="gen-prompt" rows="5"></textarea>
+      <label for="gen-negative" class="hint" style="display:block;margin:10px 0 4px">Negative prompt &mdash; what to keep <b>out</b> of the drawing.</label>
+      <textarea id="gen-negative" rows="2"></textarea>
       <p class="hint">Your face shape is kept with an edge guide made from your photo. First run loads the model (about a minute), then each drawing takes roughly a minute.</p>
+
+      <div id="ai-settings" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div class="row" style="margin-bottom:10px"><label style="min-width:auto">Settings</label><button class="chip" id="ai-settings-toggle">Show advanced settings</button></div>
+        <div id="ai-settings-body" hidden>
+          <div class="row"><label>Base model</label>
+            <button class="chip active" data-base="sdxl" title="Standard SDXL 1.0 base. Versatile, the model the tattoo LoRAs were trained on.">SDXL base</button>
+            <button class="chip" data-base="juggernaut" title="RealVisXL-style photoreal base. Pair with img2img/realistic goals; ControlNet traces geometry best from a realistic base like this.">Juggernaut XL</button>
+          </div>
+          <div class="row"><label>Style LoRA</label>
+            <button class="chip active" data-lora="tattoo" title="Trigger word: tattoo. Bold, geometric, illustrative sketches on white &mdash; good all-rounder for flash.">Flash tattoo (default)</button>
+            <button class="chip" data-lora="design" title="Trigger word: Tattoo_gen. Clean black-and-white line art, traditional styles, crisp stencils.">Tattoo Design XL</button>
+            <button class="chip" data-lora="none" title="No style LoRA. Relies on the prompt and base model alone.">None</button>
+          </div>
+          <div class="slider"><label for="ai-loraw">LoRA weight</label><output id="o-loraw">0.65</output>
+            <input type="range" id="ai-loraw" min="0.1" max="1.2" step="0.05" value="0.65">
+            <small><span>Subtle</span><span>0.6&ndash;0.85 recommended &middot; above this the ink can look messy or override the face</span></small></div>
+          <div class="slider"><label for="ai-guidance" title="CFG scale: how strictly the AI follows your prompt text.">CFG scale (prompt strength)</label><output id="o-guidance">7.5</output>
+            <input type="range" id="ai-guidance" min="1" max="15" step="0.5" value="7.5">
+            <small><span>Loose / creative</span><span>7&ndash;8.5 recommended &middot; too high looks burnt/overcooked</span></small></div>
+          <div class="slider"><label for="ai-scale" title="ControlNet weight: how strictly the drawing follows your photo's traced edges (piercings, lip rings, tattoo placement).">ControlNet weight (keep my features)</label><output id="o-scale">0.85</output>
+            <input type="range" id="ai-scale" min="0.3" max="1.0" step="0.05" value="0.85">
+            <small><span>Loose likeness</span><span>0.80&ndash;0.95 keeps piercings/placement exact</span></small></div>
+          <div class="slider"><label for="ai-steps" title="Sampling steps: how many refinement passes. More = sharper but slower.">Sampling steps</label><output id="o-steps">28</output>
+            <input type="range" id="ai-steps" min="10" max="50" step="1" value="28">
+            <small><span>Fast</span><span>25&ndash;30 recommended</span></small></div>
+          <div class="row"><label>Candidates</label>
+            <button class="chip active" data-count="1" title="One drawing, used right away.">1 (fastest)</button>
+            <button class="chip" data-count="2" title="Generate 2 and pick the best on the Previews tab.">2</button>
+            <button class="chip" data-count="3" title="Generate 3 and pick the best on the Previews tab.">3</button>
+            <button class="chip" data-count="4" title="Generate 4 and pick the best on the Previews tab. Slowest.">4</button>
+          </div>
+          <p class="hint">More than 1 candidate opens a <b>Previews</b> tab once they're ready, so you can pick the one that looks best instead of only seeing the last one generated.</p>
+        </div>
+      </div>
     </div>
     <div class="row" style="margin-top:4px"><label>Tattoo size</label>
       <input type="number" id="size-in" min="0.5" max="14" step="0.25" value="5"> <span class="hint" style="margin:0">in &nbsp;(<span id="size-cm">12.7</span> cm) &middot; the subject's longest side</span>
@@ -201,6 +237,11 @@ footer a { color:var(--accent); text-decoration:none; }
   <p class="status" id="status">Upload a photo to get started.</p>
   <div id="placeholder">Your stencil appears here.<br>Afterwards you can fine-tune it with the sliders &mdash; including bringing back the background line work.</div>
   <div id="result" hidden>
+    <div id="previews" hidden style="margin-bottom:14px">
+      <h3 style="margin-bottom:10px">Previews &mdash; pick one</h3>
+      <div id="preview-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"></div>
+      <p class="hint" style="margin-top:10px">Click the one you like best. It becomes the AI drawing below.</p>
+    </div>
     <div id="ai-draw" hidden>
       <div class="subj-row"><img id="gen-img" alt="AI drawing" style="width:150px;height:150px;border-radius:6px;background:#fff;object-fit:contain;flex:none">
         <div><b>AI drawing</b><div class="hint" style="margin:2px 0 8px" id="gen-note">The stencil below is made from this drawing.</div>
@@ -595,9 +636,25 @@ syncStyleUI();
 
 /* ───────── AI redraw (SDXL flash style) ───────── */
 S.method = 'trace'; S.goal = 'stencil'; S.gen = null; S.aiStyle = { black:90, speck:35, shade:'none', mirror:false };
+S.aiSettings = { base:'sdxl', lora:'tattoo', loraWeight:0.65, guidance:7.5, scale:0.85, steps:28, count:1 };
 let genInfo = null;
-fetch('/api/gen/info').then(r => r.json()).then(i => { genInfo = i; if (i.available) { $('#method').hidden = false; fillTemplate(); } }).catch(() => {});
-function fillTemplate() { if (genInfo && genInfo.templates) $('#gen-prompt').value = genInfo.templates[S.goal]; }
+fetch('/api/gen/info').then(r => r.json()).then(i => {
+  genInfo = i;
+  if (i.available) {
+    $('#method').hidden = false;
+    if (i.defaults) Object.assign(S.aiSettings, { guidance:i.defaults.guidance, scale:i.defaults.scale, steps:i.defaults.steps, loraWeight:i.defaults.loraWeight });
+    if (i.models) {
+      $$('#ai-settings-body [data-base]').forEach(b => b.hidden = !i.models.bases.includes(b.dataset.base));
+      $$('#ai-settings-body [data-lora]').forEach(b => b.hidden = b.dataset.lora !== 'none' && !i.models.loras.includes(b.dataset.lora));
+    }
+    syncAiSettingsUI(); fillTemplate();
+  }
+}).catch(() => {});
+function fillTemplate() {
+  if (!genInfo || !genInfo.templates) return;
+  $('#gen-prompt').value = genInfo.templates[S.goal];
+  $('#gen-negative').value = (genInfo.negatives && genInfo.negatives[S.goal]) || '';
+}
 function setMethod(m) {
   S.method = m; $$('#method [data-m]').forEach(b => b.classList.toggle('active', b.dataset.m === m));
   $('#ai-opts').hidden = m !== 'ai'; $('#gen-btn').textContent = m === 'ai' ? 'Draw with AI →' : 'Generate stencil →';
@@ -605,6 +662,27 @@ function setMethod(m) {
 }
 $$('#method [data-m]').forEach(b => b.onclick = () => setMethod(b.dataset.m));
 $$('#ai-opts [data-g]').forEach(b => b.onclick = () => { S.goal = b.dataset.g; $$('#ai-opts [data-g]').forEach(x => x.classList.toggle('active', x === b)); fillTemplate(); });
+$('#ai-settings-toggle').onclick = () => {
+  const open = $('#ai-settings-body').hidden;
+  $('#ai-settings-body').hidden = !open; $('#ai-settings-toggle').textContent = open ? 'Hide advanced settings' : 'Show advanced settings';
+};
+function syncAiSettingsUI() {
+  const a = S.aiSettings;
+  $$('#ai-settings-body [data-base]').forEach(b => b.classList.toggle('active', b.dataset.base === a.base));
+  $$('#ai-settings-body [data-lora]').forEach(b => b.classList.toggle('active', b.dataset.lora === a.lora));
+  $$('#ai-settings-body [data-count]').forEach(b => b.classList.toggle('active', +b.dataset.count === a.count));
+  $('#ai-loraw').value = a.loraWeight; $('#o-loraw').textContent = a.loraWeight;
+  $('#ai-guidance').value = a.guidance; $('#o-guidance').textContent = a.guidance;
+  $('#ai-scale').value = a.scale; $('#o-scale').textContent = a.scale;
+  $('#ai-steps').value = a.steps; $('#o-steps').textContent = a.steps;
+}
+$$('#ai-settings-body [data-base]').forEach(b => b.onclick = () => { S.aiSettings.base = b.dataset.base; syncAiSettingsUI(); });
+$$('#ai-settings-body [data-lora]').forEach(b => b.onclick = () => { S.aiSettings.lora = b.dataset.lora; syncAiSettingsUI(); });
+$$('#ai-settings-body [data-count]').forEach(b => b.onclick = () => { S.aiSettings.count = +b.dataset.count; syncAiSettingsUI(); });
+$('#ai-loraw').oninput = e => { S.aiSettings.loraWeight = +e.target.value; $('#o-loraw').textContent = e.target.value; };
+$('#ai-guidance').oninput = e => { S.aiSettings.guidance = +e.target.value; $('#o-guidance').textContent = e.target.value; };
+$('#ai-scale').oninput = e => { S.aiSettings.scale = +e.target.value; $('#o-scale').textContent = e.target.value; };
+$('#ai-steps').oninput = e => { S.aiSettings.steps = +e.target.value; $('#o-steps').textContent = e.target.value; };
 function syncAiUI() {
   $('#o-black').textContent = S.aiStyle.black; $('#o-speck').textContent = S.aiStyle.speck; $('#a-mirror').checked = S.aiStyle.mirror;
   $$('#a-shade [data-sh]').forEach(b => b.classList.toggle('active', b.dataset.sh === S.aiStyle.shade));
@@ -630,23 +708,7 @@ async function flashOnce() {
   $('#info').innerHTML = `Stencil ${r.inches[0]} &times; ${r.inches[1]} in &middot; ink ${r.inkCoverage}% of the sheet &middot; ${fit}`;
   say('Stencil ready. Adjust the black level, shading and marks below.', 'ok');
 }
-async function runAI() {
-  await ensurePrepared();
-  const subj = (S.job.ai && S.job.ai.subject) || 'a person\'s face';
-  const prompt = $('#gen-prompt').value.replace(/\{subject\}/g, subj);
-  const mode = S.goal;
-  bar(true); say('Starting the AI drawing…');
-  const st = await api('/api/gen/start', { jobId:S.job.id, mode, prompt });
-  const t0 = Date.now();
-  for (;;) {
-    await new Promise(r => setTimeout(r, 3000));
-    const d = await (await fetch('/api/gen/status/' + st.genId)).json();
-    if (d.status === 'error') throw new Error(d.error || 'The AI drawing failed');
-    if (d.status === 'none') throw new Error('The AI drawing was lost, please try again');
-    if (d.status === 'done') { S.gen = { id:st.genId, mode, image:d.image }; break; }
-    say(`Drawing with AI… ${Math.round((Date.now() - t0) / 1000)} s (the first run loads the model)`);
-    if (Date.now() - t0 > 540000) throw new Error('The AI drawing took too long');
-  }
+async function useAiResult(mode) {
   $('#gen-img').src = S.gen.image; $('#gen-dl').href = S.gen.image; $('#ai-draw').hidden = false;
   $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
   const isStencil = mode === 'stencil';
@@ -656,10 +718,55 @@ async function runAI() {
   syncAiUI();
   if (isStencil) await flashOnce(); else say('Concept art ready.', 'ok');
 }
+function showPreviews(images, mode) {
+  const grid = $('#preview-grid'); grid.innerHTML = '';
+  images.forEach(im => {
+    const cell = document.createElement('div');
+    cell.style.cssText = 'cursor:pointer;border:2px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;transition:border-color .15s';
+    cell.innerHTML = `<img src="${im.url}" alt="Candidate ${im.index + 1}" style="width:100%;display:block;aspect-ratio:1;object-fit:contain">`;
+    cell.onmouseenter = () => cell.style.borderColor = 'var(--accent)'; cell.onmouseleave = () => cell.style.borderColor = 'var(--border)';
+    cell.onclick = async () => {
+      $$('#preview-grid > div').forEach(c => c.style.borderColor = 'var(--border)'); cell.style.borderColor = 'var(--accent)';
+      S.gen = { id: `${S.genGid}_${im.index}`, mode, image: im.url };
+      say('Candidate selected.', 'ok');
+      try { await useAiResult(mode); } catch (e) { say(e.message, 'error'); }
+    };
+    grid.appendChild(cell);
+  });
+  $('#previews').hidden = false;
+  $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
+  $('#ai-draw').hidden = true; $('#stencil-wrap').hidden = true; $('.dl-buttons').hidden = true; $('#info').hidden = true; $('#post').hidden = true; $('#post-ai').hidden = true;
+}
+async function runAI() {
+  await ensurePrepared();
+  const subj = (S.job.ai && S.job.ai.subject) || 'a person\'s face';
+  const prompt = $('#gen-prompt').value.replace(/\{subject\}/g, subj);
+  const negative = $('#gen-negative').value;
+  const mode = S.goal, a = S.aiSettings;
+  $('#previews').hidden = true;
+  bar(true); say('Starting the AI drawing…');
+  const st = await api('/api/gen/start', { jobId:S.job.id, mode, prompt, negative, base:a.base, lora:a.lora, loraWeight:a.loraWeight, guidance:a.guidance, scale:a.scale, steps:a.steps, count:a.count });
+  S.genGid = st.genId;
+  const t0 = Date.now(), total = Math.max(1, st.count || 1);
+  for (;;) {
+    await new Promise(r => setTimeout(r, 3000));
+    const d = await (await fetch('/api/gen/status/' + st.genId)).json();
+    if (d.status === 'error') throw new Error(d.error || 'The AI drawing failed');
+    if (d.status === 'none') throw new Error('The AI drawing was lost, please try again');
+    if (d.status === 'done') {
+      if (d.images) { showPreviews(d.images, mode); say(`${d.images.length} candidates ready — pick one below.`, 'ok'); return; }
+      S.gen = { id:st.genId, mode, image:d.image };
+      break;
+    }
+    say(`Drawing with AI… ${Math.round((Date.now() - t0) / 1000)} s of up to ~${total}min (the first run also loads the model)`);
+    if (Date.now() - t0 > (540000 + total * 90000)) throw new Error('The AI drawing took too long');
+  }
+  await useAiResult(mode);
+}
 $('#gen-again').onclick = async () => { const b = $('#gen-again'); b.disabled = true; try { await runAI(); } catch (e) { say(e.message, 'error'); } finally { b.disabled = false; bar(false); } };
 const _genClick = $('#gen-btn').onclick;
 $('#gen-btn').onclick = async () => {
-  if (S.method !== 'ai') { $('#ai-draw').hidden = true; $('#stencil-wrap').hidden = false; $('.dl-buttons').hidden = false; $('#info').hidden = false; $('#post-ai').hidden = true; $('#post').hidden = false; return _genClick(); }
+  if (S.method !== 'ai') { $('#previews').hidden = true; $('#ai-draw').hidden = true; $('#stencil-wrap').hidden = false; $('.dl-buttons').hidden = false; $('#info').hidden = false; $('#post-ai').hidden = true; $('#post').hidden = false; return _genClick(); }
   const b = $('#gen-btn'); b.disabled = true;
   try { await runAI(); } catch (e) { say(e.message, 'error'); } finally { b.disabled = false; bar(false); }
 };
