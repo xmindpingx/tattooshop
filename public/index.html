@@ -403,14 +403,23 @@ header .spacer{flex:1}
 
       <p class="sec">Thermal Positive Chips</p>
       <div class="chip-bank" id="ai-chips"></div>
+
+      <div class="row" style="margin-top:10px;align-items:center;gap:10px">
+        <span style="font-size:.75rem;color:var(--muted)">Variations:</span>
+        <button class="chip" id="vc-1" onclick="setVarCount(1)">1</button>
+        <button class="chip" id="vc-2" onclick="setVarCount(2)">2</button>
+        <button class="chip" id="vc-3" onclick="setVarCount(3)">3</button>
+        <button class="chip" id="vc-4" onclick="setVarCount(4)">4</button>
+        <span style="font-size:.7rem;color:var(--muted)">(multiple = Candidates tab)</span>
+      </div>
     </div>
 
     <!-- ── TAB: CANDIDATES ── -->
     <div class="tab-pane" data-tab="previews">
       <div id="candidates-empty" style="color:var(--muted);text-align:center;padding:40px 20px">
         <div style="font-size:2.5rem;margin-bottom:8px">🎞</div>
-        <p>Set Candidates &gt; 1 in AI Settings, then generate to see multiple options here.</p>
-        <p style="margin-top:8px;font-size:.75rem">Click a candidate to select it as your active stencil.</p>
+        <p>Set Variations to 2–4 in the AI Redraw tab, then generate.</p>
+        <p style="margin-top:8px;font-size:.75rem">Each result appears here — click one to make it your active stencil.</p>
       </div>
       <div id="candidates-grid" style="display:none"></div>
     </div>
@@ -717,6 +726,18 @@ function updateAi(el, key, factor) {
   });
   const disp = document.getElementById('lbl-' + key);
   if (disp) disp.textContent = el.value;
+}
+
+function setVarCount(n) {
+  S.aiCount = n;
+  const cfg = document.getElementById('cfg-count');
+  if (cfg) cfg.value = n;
+  const sl = document.getElementById('sl-count');
+  if (sl) { sl.value = n; const sv = document.getElementById('sv-count'); if (sv) sv.textContent = n; }
+  for (let i = 1; i <= 4; i++) {
+    const b = document.getElementById('vc-' + i);
+    if (b) b.classList.toggle('on', i === n);
+  }
 }
 
 function onLoraChange(val) {
