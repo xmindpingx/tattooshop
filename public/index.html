@@ -841,9 +841,11 @@ function doTextStencil() {
 
 /* ── Photo render ──────────────────────────────────────────────────── */
 function doRender() {
+  if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
   if (!S.hasPhoto) { showToast('Upload a photo first.', 2500); return; }
+  S._rendering = true;
   showOverlay('Rendering stencil…', 10);
-  if (!S.jobId) { hideOverlay(); showToast('Session lost — re-upload the photo.', 3000); return; }
+  if (!S.jobId) { hideOverlay(); S._rendering = false; showToast('Session lost — re-upload the photo.', 3000); return; }
   const body = {
     jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
     smooth: S.smooth, texture: S.texture, skin: S.skin,
@@ -852,6 +854,7 @@ function doRender() {
   fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
   .then(r => r.json())
   .then(d => {
+    S._rendering = false;
     hideOverlay();
     if (d.error) { showToast('Error: ' + d.error, 4000); return; }
     const url = (d.files && d.files.png) || d.url || d.path;
@@ -867,7 +870,7 @@ function doRender() {
     if (ppPhoto) ppPhoto.classList.add('visible');
     if (ppAi) ppAi.classList.add('visible');
   })
-  .catch(e => { hideOverlay(); showToast('Request failed: ' + e.message, 4000); });
+  .catch(e => { S._rendering = false; hideOverlay(); showToast('Request failed: ' + e.message, 4000); });
 }
 
 /* ── AI redraw ─────────────────────────────────────────────────────── */
