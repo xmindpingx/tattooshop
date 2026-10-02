@@ -872,6 +872,7 @@ function doRender() {
 
 /* ── AI redraw ─────────────────────────────────────────────────────── */
 function doAiRedraw() {
+  if (S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
   if (!S.hasStencil && !S.hasPhoto) { showToast('Generate or upload a stencil first.', 2500); return; }
   if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
   const prompt = (document.getElementById('prompt-pos')?.value || '').trim();
