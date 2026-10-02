@@ -150,10 +150,10 @@ footer a { color:var(--accent); text-decoration:none; }
           <button class="chip" data-f="portrait">Portrait</button>
           <button class="chip" data-f="bold">Bold &amp; simple</button>
         </div>
-        <div class="slider"><label for="f-stubble">Remove beard &amp; stubble texture (keeps tattoos &amp; piercings)</label><output id="o-stubble">50</output><input type="range" id="f-stubble" min="0" max="100" step="5" value="50"></div>
-        <div class="slider"><label for="f-skin">Smooth skin (wrinkles &amp; blemishes)</label><output id="o-skin">0</output><input type="range" id="f-skin" min="0" max="100" step="1" value="0"></div>
-        <div class="slider"><label for="f-smooth">Hide stubble, pores &amp; specks</label><output id="o-smooth">0</output><input type="range" id="f-smooth" min="0" max="100" step="1" value="0"></div>
-        <div class="slider"><label for="f-texture">Flatten shading</label><output id="o-texture">0</output><input type="range" id="f-texture" min="0" max="100" step="1" value="0"></div>
+        <div class="slider"><label for="f-stubble">Remove beard &amp; stubble texture (keeps tattoos &amp; piercings)</label><output id="o-stubble">50</output><input type="range" id="f-stubble" min="0" max="65" step="5" value="50"></div>
+        <div class="slider"><label for="f-skin">Smooth skin (wrinkles &amp; blemishes)</label><output id="o-skin">0</output><input type="range" id="f-skin" min="0" max="15" step="1" value="0"></div>
+        <div class="slider"><label for="f-smooth">Hide stubble, pores &amp; specks</label><output id="o-smooth">0</output><input type="range" id="f-smooth" min="10" max="35" step="1" value="0"></div>
+        <div class="slider"><label for="f-texture">Flatten shading</label><output id="o-texture">0</output><input type="range" id="f-texture" min="0" max="10" step="1" value="0"></div>
       </div>
     </div>
 
@@ -236,17 +236,17 @@ footer a { color:var(--accent); text-decoration:none; }
       <div class="slider"><label for="p-background">Background line work</label><output id="v-background">Subject only</output>
         <input type="range" id="p-background" min="0" max="100" step="1" value="0"><small><span>Subject only</span><span>Whole photo</span></small></div>
       <div class="slider"><label for="p-detail">Line detail</label><output id="v-detail">50</output>
-        <input type="range" id="p-detail" min="0" max="100" step="1" value="50"><small><span>Bold shapes only</span><span>Fine detail</span></small></div>
+        <input type="range" id="p-detail" min="20" max="90" step="1" value="50"><small><span>Bold shapes only</span><span>Fine detail</span></small></div>
       <div class="slider"><label for="p-cleanup">Remove small marks</label><output id="v-cleanup">35</output>
-        <input type="range" id="p-cleanup" min="0" max="100" step="1" value="35"><small><span>Keep everything</span><span>Cleaner</span></small></div>
+        <input type="range" id="p-cleanup" min="15" max="70" step="1" value="35"><small><span>Keep everything</span><span>Cleaner</span></small></div>
       <div class="slider"><label for="p-weightMm">Line weight</label><output id="v-weightMm">0.40 mm</output>
-        <input type="range" id="p-weightMm" min="0.15" max="1.2" step="0.05" value="0.4"><small><span>Fine</span><span>Bold</span></small></div>
+        <input type="range" id="p-weightMm" min="0.35" max="0.7" step="0.05" value="0.4"><small><span>Fine</span><span>Bold</span></small></div>
       <div class="slider"><label for="p-varw">Variable line weight</label><output id="v-varw">0</output>
         <input type="range" id="p-varw" min="0" max="100" step="5" value="0"><small><span>Uniform</span><span>Thick silhouette, thin interior</span></small></div>
       <div class="slider"><label for="p-fills">Solid black fills</label><output id="v-fills">0</output>
-        <input type="range" id="p-fills" min="0" max="100" step="5" value="0"><small><span>Outlines only</span><span>Fill darkest areas</span></small></div>
+        <input type="range" id="p-fills" min="0" max="50" step="5" value="0"><small><span>Outlines only</span><span>Fill darkest areas</span></small></div>
       <div class="slider"><label for="p-shadows">Shadow shapes</label><output id="v-shadows">0</output>
-        <input type="range" id="p-shadows" min="0" max="100" step="5" value="0"><small><span>Off</span><span>Outline shadow patches</span></small></div>
+        <input type="range" id="p-shadows" min="0" max="15" step="5" value="0"><small><span>Off</span><span>Outline shadow patches</span></small></div>
       <label class="check"><input type="checkbox" id="p-mirror"> Mirror image (for thermal transfer paper)</label>
       <div id="ai-tags"></div>
     </div>
@@ -509,10 +509,10 @@ $$('#size-chips [data-s]').forEach(b => b.onclick = () => setSize(b.dataset.s, t
 
 /* ───────── generate + live post-processing ───────── */
 const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm', varw:v => v, fills:v => v, shadows:v => v };
-const FILTERS = { none:[0,0,0], skin:[60,0,0], beard:[0,45,0], portrait:[30,25,0], bold:[40,60,50] };
-// style presets, picked by testing on a real stubble/wrinkle portrait: [skin, smooth, texture, detail, cleanup]
-const PRESETS = { portrait:[0,10,0,65,30], beard:[0,45,0,60,60], minimal:[25,40,0,65,45], detailed:[0,20,0,50,70], original:[0,0,0,50,35] };
-const PKEYS = ['skin', 'smooth', 'texture', 'detail', 'cleanup'];
+const FILTERS = { none:[0,10,0], skin:[15,10,0], beard:[0,30,0], portrait:[10,15,0], bold:[15,35,10] };   // kept inside the tested slider ranges
+// style presets, all inside the tested slider ranges: [skin, smooth, texture, detail, cleanup, stubble]
+const PRESETS = { portrait:[0,10,0,65,30,50], beard:[0,25,0,60,40,65], minimal:[10,30,0,45,60,60], detailed:[0,10,0,85,15,35], original:[0,10,0,65,30,0] };
+const PKEYS = ['skin', 'smooth', 'texture', 'detail', 'cleanup', 'stubble'];
 function aiDefaults(ai) {
   const st = { ...DEFAULT_STYLE, background:0 };
   if (!ai) return st;
@@ -541,8 +541,13 @@ $('#save-prep').onclick = async () => {
   } catch (e) { say(e.message, 'error'); }
   finally { b.disabled = false; b.textContent = t; }
 };
+function clampStyle() {
+  for (const [k, id] of [['stubble','f-stubble'],['skin','f-skin'],['smooth','f-smooth'],['texture','f-texture'],['detail','p-detail'],['cleanup','p-cleanup'],['weightMm','p-weightMm'],['varw','p-varw'],['fills','p-fills'],['shadows','p-shadows']]) {
+    const el = $('#' + id); if (el && Number.isFinite(+S.style[k])) S.style[k] = clamp(+S.style[k], +el.min, +el.max);
+  }
+}
 function syncStyleUI() {
-  syncFilterUI(); syncPresetUI();
+  clampStyle(); syncFilterUI(); syncPresetUI();
   for (const k of ['background', 'detail', 'cleanup', 'weightMm', 'varw', 'fills', 'shadows']) { $('#p-' + k).value = S.style[k]; $('#v-' + k).textContent = FMT[k](S.style[k]); }
   $('#p-mirror').checked = S.style.mirror;
 }
@@ -564,6 +569,7 @@ async function runRender() {
 async function renderOnce() {
   if (!S.job) throw new Error('Session expired. Press Generate again.');
   $('#busy').hidden = !S.hasStencil; bar(true);
+  clampStyle();
   const r = await api('/api/render', { jobId:S.job.id, ...S.style, sizeIn:S.sizeIn });
   await new Promise((res, rej) => { const im = new Image(); im.onload = () => { $('#stencil-img').src = im.src; res(); }; im.onerror = () => rej(new Error('Could not load the stencil image')); im.src = r.files.png; });
   $('#dl-png').href = r.files.png; $('#dl-pdf').href = r.files.pdf;
