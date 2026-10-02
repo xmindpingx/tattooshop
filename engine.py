@@ -624,3 +624,58 @@ def cmd_flash(gen, outbase, sizeIn=5.0, black=90, shade='none', mirror=False, sp
     if mirror:
         out = np.ascontiguousarray(out[:, ::-1])
     return _export_bw(out, dpi, outbase, sizeIn, t0)
+
+
+# ─── Text-to-stencil ──────────────────────────────────────────────────────────
+def cmd_text_stencil(text='', font='Arial', sizeIn=5.0, chips='', outPng=''):
+    """Render text as a pure black-on-white stencil PNG at 300 DPI."""
+    import os, re
+    from PIL import Image, ImageDraw, ImageFont
+    t0 = time.time()
+    DPI = 300
+    # Target width in pixels for the given sizeIn (height auto from font metrics)
+    target_w = int(round(sizeIn * DPI))
+    # Font search: try local public/fonts/, then system
+    font_dirs = [
+        os.path.join(os.path.dirname(__file__), 'public', 'fonts'),
+        '/usr/share/fonts', '/usr/local/share/fonts',
+    ]
+    font_path = None
+    font_slug = re.sub(r'[^a-z0-9]', '', font.lower())
+    for d in font_dirs:
+        if not os.path.isdir(d):
+            continue
+        for fn in os.listdir(d):
+            if re.sub(r'[^a-z0-9]', '', fn.lower()).startswith(font_slug) and fn.lower().endswith(('.ttf', '.otf')):
+                font_path = os.path.join(d, fn)
+                break
+        if font_path:
+            break
+    # Iteratively find font size that fills target_w
+    fs = 200
+    for _ in range(20):
+        try:
+            pil_font = ImageFont.truetype(font_path, fs) if font_path else ImageFont.load_default()
+        except Exception:
+            pil_font = ImageFont.load_default()
+        dummy = Image.new('L', (1, 1))
+        bb = ImageDraw.Draw(dummy).textbbox((0, 0), text, font=pil_font)
+        tw, th = bb[2] - bb[0], bb[3] - bb[1]
+        if tw <= 0:
+            break
+        ratio = target_w / tw
+        if abs(ratio - 1.0) < 0.02:
+            break
+        fs = max(8, int(fs * ratio * 0.95))
+    # Render with padding
+    pad = max(20, int(DPI * 0.15))
+    img = Image.new('L', (tw + pad * 2, th + pad * 2), 255)
+    draw = ImageDraw.Draw(img)
+    draw.text((pad - bb[0], pad - bb[1]), text, font=pil_font, fill=0)
+    # Threshold to pure 1-bit
+    arr = np.array(img)
+    arr = np.where(arr < 128, 0, 255).astype(np.uint8)
+    out_img = Image.fromarray(arr)
+    os.makedirs(os.path.dirname(outPng) if os.path.dirname(outPng) else '.', exist_ok=True)
+    out_img.save(outPng, dpi=(DPI, DPI))
+    return {'png': outPng, 'elapsed': round(time.time() - t0, 2)}

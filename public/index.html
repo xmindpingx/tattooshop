@@ -9,27 +9,60 @@
 [hidden] { display:none !important; }
 :root { --bg:#0a0a0a; --surface:#141414; --raised:#1b1b1b; --border:#2a2a2a; --ink:#fff; --muted:#8a8a8a; --accent:#e8c84a; --accent2:#c0392b; --radius:12px; }
 body { background:var(--bg); color:var(--ink); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; min-height:100vh; display:flex; flex-direction:column; }
-header { background:var(--surface); border-bottom:1px solid var(--border); padding:16px 28px; display:flex; align-items:center; gap:16px; }
+header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .logo-wrap { display:flex; align-items:center; gap:10px; }
 .logo-icon { width:36px; height:36px; background:var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:19px; }
 header h1 { font-size:1.35rem; font-weight:700; letter-spacing:-.5px; }
 header .sub { margin-left:auto; color:var(--muted); font-size:.8rem; }
-main { flex:1; width:100%; max-width:1240px; margin:0 auto; padding:28px 20px 40px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
-@media (max-width:900px) { main { grid-template-columns:1fr; } header .sub { display:none; } }
+@media (max-width:900px) { header .sub { display:none; } }
+
+/* ── shared action bar (below header) ── */
+#action-bar { background:var(--surface); border-bottom:2px solid var(--border); padding:10px 28px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+#action-bar.locked { opacity:.45; pointer-events:none; }
+.ab-group { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ab-sep { width:1px; background:var(--border); align-self:stretch; margin:0 4px; }
+#size-in { width:72px; padding:6px 8px; background:var(--bg); border:1px solid var(--border); color:var(--ink); border-radius:7px; font-size:.9rem; }
+.size-label { font-size:.75rem; color:var(--muted); white-space:nowrap; }
+.chip { padding:6px 10px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:7px; cursor:pointer; font-size:.82rem; white-space:nowrap; transition:all .15s; }
+.chip:hover, .chip.active { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.08); }
+.chip.danger { border-color:var(--accent2); color:var(--accent2); background:rgba(192,57,43,.08); }
+#gen-btn { padding:10px 22px; background:var(--accent); color:#000; border:none; border-radius:var(--radius); font-size:.95rem; font-weight:700; letter-spacing:.04em; cursor:pointer; text-transform:uppercase; transition:opacity .2s; white-space:nowrap; }
+#gen-btn:hover:not(:disabled) { opacity:.9; } #gen-btn:disabled { opacity:.45; cursor:not-allowed; }
+
+/* ── thermal no-list collapsible ── */
+#nolist-wrap { background:var(--raised); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin:0 28px 0; }
+#nolist-header { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.78rem; color:var(--muted); user-select:none; }
+#nolist-header label { cursor:pointer; }
+#nolist-header input[type=checkbox] { accent-color:var(--accent); width:15px; height:15px; cursor:pointer; }
+#nolist-toggle-btn { font-size:.72rem; color:var(--accent); background:none; border:none; cursor:pointer; margin-left:auto; }
+#nolist-body { margin-top:8px; display:flex; flex-wrap:wrap; gap:5px; }
+#nolist-body .nochip { padding:3px 8px; border:1px solid var(--border); border-radius:20px; font-size:.7rem; color:var(--muted); background:rgba(192,57,43,.06); border-color:rgba(192,57,43,.25); }
+
+main { flex:1; width:100%; max-width:1240px; margin:0 auto; padding:20px 20px 40px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+@media (max-width:900px) { main { grid-template-columns:1fr; } }
 .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; }
 .card > h2 { font-size:.9rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:16px; }
 h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-bottom:12px; }
 button { font-family:inherit; }
-#drop-zone { border:2px dashed var(--border); border-radius:10px; padding:56px 20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+
+/* ── main tab nav ── */
+.main-tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--bg); padding:4px; border-radius:9px; border:1px solid var(--border); flex-wrap:wrap; }
+.main-tabs button { flex:1; min-width:80px; padding:8px 6px; background:none; border:none; color:var(--muted); border-radius:6px; cursor:pointer; font-size:.78rem; font-weight:600; text-align:center; transition:all .15s; }
+.main-tabs button.active { background:var(--raised); color:var(--accent); }
+.main-tabs button.stub { opacity:.5; }
+
+/* ── inner tab nav (within photo/subject panel) ── */
+.inner-tabs { display:flex; gap:6px; margin-bottom:12px; background:var(--bg); padding:4px; border-radius:9px; border:1px solid var(--border); }
+.inner-tabs button { flex:1; padding:7px 10px; background:none; border:none; color:var(--muted); border-radius:6px; cursor:pointer; font-size:.83rem; font-weight:600; }
+.inner-tabs button.active { background:var(--raised); color:var(--accent); }
+
+#drop-zone { border:2px dashed var(--border); border-radius:10px; padding:48px 20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
 #drop-zone:hover, #drop-zone.dragover { border-color:var(--accent); background:rgba(232,200,74,.04); }
 #drop-zone .icon { font-size:3rem; opacity:.5; }
 #drop-zone p { color:var(--muted); font-size:.9rem; line-height:1.6; }
 #drop-zone strong { color:var(--ink); }
 #file-input { display:none; }
 
-.tabs { display:flex; gap:6px; margin-bottom:12px; background:var(--bg); padding:4px; border-radius:9px; border:1px solid var(--border); }
-.tabs button { flex:1; padding:8px 10px; background:none; border:none; color:var(--muted); border-radius:6px; cursor:pointer; font-size:.85rem; font-weight:600; }
-.tabs button.active { background:var(--raised); color:var(--accent); }
 #stage-wrap { display:flex; justify-content:center; background:#050505; border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:12px; }
 #stage { position:relative; touch-action:none; user-select:none; -webkit-user-select:none; background:#fff; }
 #view { position:absolute; inset:0; width:100%; height:100%; display:block; }
@@ -49,8 +82,6 @@ button { font-family:inherit; }
 
 .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
 .row > label { font-size:.74rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; min-width:84px; }
-.chip { padding:7px 11px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:7px; cursor:pointer; font-size:.82rem; white-space:nowrap; transition:all .15s; }
-.chip:hover, .chip.active { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.08); }
 .slider { display:grid; grid-template-columns:1fr auto; gap:2px 10px; margin-bottom:14px; }
 .slider label { font-size:.8rem; color:var(--ink); } .slider output { font-size:.8rem; color:var(--accent); font-variant-numeric:tabular-nums; }
 .slider input { grid-column:1 / 3; width:100%; accent-color:var(--accent); }
@@ -62,8 +93,6 @@ input[type=number] { width:84px; padding:7px 9px; background:var(--bg); border:1
 .check input { accent-color:var(--accent); width:16px; height:16px; }
 .ai-line { background:rgba(232,200,74,.06); border:1px solid rgba(232,200,74,.22); border-radius:8px; padding:9px 12px; font-size:.78rem; color:var(--muted); margin-bottom:12px; line-height:1.5; }
 .ai-line b { color:var(--accent); }
-#gen-btn { width:100%; padding:14px; margin-top:6px; background:var(--accent); color:#000; border:none; border-radius:var(--radius); font-size:.98rem; font-weight:700; letter-spacing:.04em; cursor:pointer; text-transform:uppercase; transition:opacity .2s; }
-#gen-btn:hover:not(:disabled) { opacity:.9; } #gen-btn:disabled { opacity:.45; cursor:not-allowed; }
 .link { background:none; border:none; color:var(--muted); font-size:.8rem; cursor:pointer; text-decoration:underline; margin-top:12px; }
 .status { font-size:.86rem; color:var(--muted); min-height:20px; margin-bottom:10px; }
 .status.error { color:#e74c3c; } .status.ok { color:#2ecc71; }
@@ -82,7 +111,8 @@ input[type=number] { width:84px; padding:7px 9px; background:var(--bg); border:1
 #post { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px; }
 #post .subj-row { display:flex; gap:12px; align-items:center; padding:10px; margin-bottom:14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
 #subj-thumb { width:96px; height:96px; object-fit:contain; background:#050505 center/contain no-repeat; border-radius:6px; flex:none; }
-#gen-prompt { width:100%; background:var(--bg); color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:9px 11px; font:inherit; font-size:.82rem; resize:vertical; }
+#gen-prompt, #gen-negative, #txt-input { width:100%; background:var(--bg); color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:9px 11px; font:inherit; font-size:.82rem; resize:vertical; }
+#txt-input { font-size:1.1rem; height:52px; resize:none; }
 #simplify { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
 #simplify .top { margin-bottom:10px; } #simplify h3 { margin:0; font-size:.9rem; color:var(--accent); }
 #post .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
@@ -90,6 +120,22 @@ input[type=number] { width:84px; padding:7px 9px; background:var(--bg); border:1
 #ai-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
 .tag { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:20px; padding:3px 10px; font-size:.74rem; color:var(--muted); }
 .tag.hi { color:var(--accent); border-color:rgba(232,200,74,.4); }
+
+/* ── text stencil tab ── */
+#tab-text .font-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin-bottom:14px; }
+.font-chip { padding:10px 12px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:8px; cursor:pointer; font-size:1rem; text-align:center; transition:all .15s; }
+.font-chip:hover, .font-chip.active { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.08); }
+.mode-row { display:flex; gap:8px; margin-bottom:14px; }
+.mode-btn { flex:1; padding:12px; border:2px solid var(--border); background:var(--bg); color:var(--muted); border-radius:10px; cursor:pointer; font-size:.85rem; font-weight:600; text-align:center; transition:all .15s; }
+.mode-btn:hover, .mode-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.06); }
+.mode-btn small { display:block; font-weight:400; font-size:.72rem; color:var(--muted); margin-top:3px; }
+.chip-bank { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.chip-bank .pchip { padding:5px 10px; border:1px solid var(--border); background:var(--bg); color:var(--muted); border-radius:20px; cursor:pointer; font-size:.75rem; transition:all .15s; }
+.chip-bank .pchip.active { border-color:var(--accent); color:var(--accent); background:rgba(232,200,74,.1); }
+
+/* ── previews grid ── */
+#preview-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+
 footer { border-top:1px solid var(--border); padding:14px 24px; text-align:center; color:var(--muted); font-size:.78rem; }
 footer a { color:var(--accent); text-decoration:none; }
 </style>
@@ -97,155 +143,260 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 <header>
   <div class="logo-wrap"><div class="logo-icon">&#x270B;</div><h1>TattooShop <span style="color:var(--accent)">AI</span></h1></div>
-  <span class="sub">Ollama gemma4 &middot; ISNet &middot; MobileSAM &middot; OpenCV</span>
+  <span class="sub">Ollama gemma4 &middot; ISNet &middot; MobileSAM &middot; OpenCV &middot; SDXL ControlNet</span>
 </header>
 
-<main>
-<!-- ───────────── 1 · photo ───────────── -->
-<section class="card">
-  <h2>1 &middot; Photo &amp; subject</h2>
-  <div id="drop-zone">
-    <span class="icon">&#x1F4F7;</span>
-    <p><strong>Drag &amp; drop</strong> your photo here<br>or <strong>click to browse</strong><br><small style="opacity:.6">JPG &middot; PNG &middot; WEBP &middot; up to 15 MB</small></p>
+<!-- ── shared action bar ── -->
+<div id="action-bar">
+  <div class="ab-group">
+    <span class="size-label">Tattoo size</span>
+    <input type="number" id="size-in" min="0.5" max="14" step="0.25" value="5">
+    <span class="size-label">in &nbsp;(<span id="size-cm">12.7</span> cm)</span>
   </div>
-  <input type="file" id="file-input" accept="image/*">
-
-  <div id="editor" hidden>
-    <div class="tabs">
-      <button data-tab="adjust" class="active">&#x2702; Crop &amp; adjust</button>
-      <button data-tab="subject">&#x1F3AF; Subject of focus</button>
-    </div>
-    <div id="stage-wrap">
-      <div id="stage">
-        <canvas id="view"></canvas>
-        <img id="ov" alt="" hidden>
-        <div id="marks"></div>
-        <div id="cropbox"><i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i><i data-h="e"></i><i data-h="se"></i><i data-h="s"></i><i data-h="sw"></i><i data-h="w"></i></div>
-        <div class="spin" id="stage-spin" hidden></div>
-      </div>
-    </div>
-
-    <div id="panel-adjust">
-      <div class="row"><label>Rotate / flip</label>
-        <button class="chip" data-act="rotL" title="Rotate left">&#x21B6; 90&deg;</button>
-        <button class="chip" data-act="rotR" title="Rotate right">&#x21B7; 90&deg;</button>
-        <button class="chip" data-act="flipH" title="Flip left-right">&#x21C4; Flip</button>
-        <button class="chip" data-act="flipV" title="Flip top-bottom">&#x21C5; Flip</button>
-      </div>
-      <div class="row" id="aspects"><label>Crop shape</label>
-        <button class="chip active" data-a="0">Free</button><button class="chip" data-a="1">1:1</button><button class="chip" data-a="0.8">4:5</button>
-        <button class="chip" data-a="1.5">3:2</button><button class="chip" data-a="1.7778">16:9</button>
-        <button class="chip" data-act="cropReset">Reset crop</button>
-      </div>
-      <div class="slider"><label for="s-bright">Brightness</label><output id="o-bright">0</output><input type="range" id="s-bright" min="-100" max="100" step="1" value="0"></div>
-      <div class="slider"><label for="s-contrast">Contrast</label><output id="o-contrast">0</output><input type="range" id="s-contrast" min="-100" max="100" step="1" value="0"></div>
-      <label class="check"><input type="checkbox" id="c-auto"> Auto-levels (stretch dull or washed-out photos)</label>
-      <p class="hint">Drag the box to crop. Cropping tight to what you want inked gives the cleanest stencil.</p>
-      <div id="simplify">
-        <div class="top"><h3>Simplify the photo</h3></div>
-        <div class="row" id="fpresets"><label>Quick filters</label>
-          <button class="chip" data-f="none">None</button>
-          <button class="chip" data-f="skin">Smooth skin</button>
-          <button class="chip" data-f="beard">Stubble &amp; beard</button>
-          <button class="chip" data-f="portrait">Portrait</button>
-          <button class="chip" data-f="bold">Bold &amp; simple</button>
-        </div>
-        <div class="slider"><label for="f-stubble">Remove beard &amp; stubble texture (keeps tattoos &amp; piercings)</label><output id="o-stubble">50</output><input type="range" id="f-stubble" min="0" max="65" step="5" value="50"></div>
-        <div class="slider"><label for="f-skin">Smooth skin (wrinkles &amp; blemishes)</label><output id="o-skin">0</output><input type="range" id="f-skin" min="0" max="15" step="1" value="0"></div>
-        <div class="slider"><label for="f-smooth">Hide stubble, pores &amp; specks</label><output id="o-smooth">0</output><input type="range" id="f-smooth" min="10" max="35" step="1" value="0"></div>
-        <div class="slider"><label for="f-texture">Flatten shading</label><output id="o-texture">0</output><input type="range" id="f-texture" min="0" max="10" step="1" value="0"></div>
-      </div>
-    </div>
-
-    <div id="panel-subject" hidden>
-      <div class="row"><label>Click mode</label>
-        <button class="chip active" data-mode="pick">&#x1F3AF; Pick object</button>
-        <button class="chip" data-mode="add">&#xFF0B; Add to subject</button>
-        <button class="chip" data-mode="remove">&#xFF0D; Remove part</button>
-        <button class="chip" data-act="autoSubject">&#x21BA; Auto subject</button>
-      </div>
-      <p class="hint">The <b>bright area</b> is the subject (gold outline); the dark area is left out. <b>Click an object</b> to make it the subject, use <b>Add</b>/<b>Remove</b> to fine-tune. Shortcuts: <b>Shift</b>-click adds, <b>Alt</b>/right-click removes.</p>
-      <div class="ai-line" id="ai-line" hidden></div>
-    </div>
-
-    <div class="row" id="method" hidden style="margin-top:4px"><label>Method</label>
-      <button class="chip active" data-m="trace" title="Fast. Traces the lines of your photo">Trace photo</button>
-      <button class="chip" data-m="ai" title="An AI model redraws your photo as bold tattoo flash (about a minute)">AI redraw (flash style)</button>
-    </div>
-    <div id="ai-opts" hidden>
-      <div class="row"><label>Goal</label>
-        <button class="chip active" data-g="stencil" title="Black-and-white flash linework you can print as a stencil">Stencil / flash for a tattoo artist</button>
-        <button class="chip" data-g="concept" title="A picture of a character who has tattoos. Not a printable stencil">Concept art (character with tattoos)</button>
-      </div>
-      <label for="gen-prompt" class="hint" style="display:block;margin:6px 0 4px">Prompt. Edit freely; <b>{subject}</b> is replaced by what the AI sees in your photo.</label>
-      <textarea id="gen-prompt" rows="5"></textarea>
-      <label for="gen-negative" class="hint" style="display:block;margin:10px 0 4px">Negative prompt &mdash; what to keep <b>out</b> of the drawing.</label>
-      <textarea id="gen-negative" rows="2"></textarea>
-      <p class="hint">Your face shape is kept with an edge guide made from your photo. First run loads the model (about a minute), then each drawing takes roughly a minute.</p>
-
-      <div id="ai-settings" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
-        <div class="row" style="margin-bottom:10px"><label style="min-width:auto">Settings</label><button class="chip" id="ai-settings-toggle">Show advanced settings</button></div>
-        <div id="ai-settings-body" hidden>
-          <div class="row"><label>Base model</label>
-            <button class="chip active" data-base="sdxl" title="Standard SDXL 1.0 base. Versatile, the model the tattoo LoRAs were trained on.">SDXL base</button>
-            <button class="chip" data-base="juggernaut" title="RealVisXL-style photoreal base. Pair with img2img/realistic goals; ControlNet traces geometry best from a realistic base like this.">Juggernaut XL</button>
-          </div>
-          <div class="row"><label>Style LoRA</label>
-            <button class="chip active" data-lora="tattoo" title="Trigger word: tattoo. Bold, geometric, illustrative sketches on white &mdash; good all-rounder for flash.">Flash tattoo (default)</button>
-            <button class="chip" data-lora="design" title="Trigger word: Tattoo_gen. Clean black-and-white line art, traditional styles, crisp stencils.">Tattoo Design XL</button>
-            <button class="chip" data-lora="none" title="No style LoRA. Relies on the prompt and base model alone.">None</button>
-          </div>
-          <div class="slider"><label for="ai-loraw">LoRA weight</label><output id="o-loraw">0.65</output>
-            <input type="range" id="ai-loraw" min="0.1" max="1.2" step="0.05" value="0.65">
-            <small><span>Subtle</span><span>0.6&ndash;0.85 recommended &middot; above this the ink can look messy or override the face</span></small></div>
-          <div class="slider"><label for="ai-guidance" title="CFG scale: how strictly the AI follows your prompt text.">CFG scale (prompt strength)</label><output id="o-guidance">7.5</output>
-            <input type="range" id="ai-guidance" min="1" max="15" step="0.5" value="7.5">
-            <small><span>Loose / creative</span><span>7&ndash;8.5 recommended &middot; too high looks burnt/overcooked</span></small></div>
-          <div class="slider"><label for="ai-scale" title="ControlNet weight: how strictly the drawing follows your photo's traced edges (piercings, lip rings, tattoo placement).">ControlNet weight (keep my features)</label><output id="o-scale">0.85</output>
-            <input type="range" id="ai-scale" min="0.3" max="1.0" step="0.05" value="0.85">
-            <small><span>Loose likeness</span><span>0.80&ndash;0.95 keeps piercings/placement exact</span></small></div>
-          <div class="slider"><label for="ai-steps" title="Sampling steps: how many refinement passes. More = sharper but slower.">Sampling steps</label><output id="o-steps">28</output>
-            <input type="range" id="ai-steps" min="10" max="50" step="1" value="28">
-            <small><span>Fast</span><span>25&ndash;30 recommended</span></small></div>
-          <div class="row"><label>Candidates</label>
-            <button class="chip active" data-count="1" title="One drawing, used right away.">1 (fastest)</button>
-            <button class="chip" data-count="2" title="Generate 2 and pick the best on the Previews tab.">2</button>
-            <button class="chip" data-count="3" title="Generate 3 and pick the best on the Previews tab.">3</button>
-            <button class="chip" data-count="4" title="Generate 4 and pick the best on the Previews tab. Slowest.">4</button>
-          </div>
-          <p class="hint">More than 1 candidate opens a <b>Previews</b> tab once they're ready, so you can pick the one that looks best instead of only seeing the last one generated.</p>
-        </div>
-      </div>
-    </div>
-    <div class="row" style="margin-top:4px"><label>Tattoo size</label>
-      <input type="number" id="size-in" min="0.5" max="14" step="0.25" value="5"> <span class="hint" style="margin:0">in &nbsp;(<span id="size-cm">12.7</span> cm) &middot; the subject's longest side</span>
-    </div>
-    <div class="row" id="size-chips"><label></label>
-      <button class="chip" data-s="2">2"</button><button class="chip" data-s="3">3"</button><button class="chip" data-s="4">4"</button><button class="chip active" data-s="5">5"</button><button class="chip" data-s="6">6"</button><button class="chip" data-s="8">8"</button>
-    </div>
-
-    <div class="row"><button class="chip" id="save-prep">&#x2B07; Save prepared photo</button><span class="hint" style="margin:0">crop, adjustments and smoothing filters applied</span></div>
+  <div class="ab-group" id="size-chips">
+    <button class="chip" data-s="2">2"</button>
+    <button class="chip" data-s="3">3"</button>
+    <button class="chip" data-s="4">4"</button>
+    <button class="chip active" data-s="5">5"</button>
+    <button class="chip" data-s="6">6"</button>
+    <button class="chip" data-s="8">8"</button>
+  </div>
+  <div class="ab-sep"></div>
+  <div class="ab-group">
     <button id="gen-btn">Generate stencil &rarr;</button>
-    <div style="text-align:center"><button class="link" id="new-btn">Choose a different photo</button></div>
+    <div class="bar" id="bar" hidden style="width:120px;margin:0"></div>
+  </div>
+</div>
+
+<!-- ── thermal no-list panel ── -->
+<div id="nolist-wrap" style="display:none">
+  <div id="nolist-header">
+    <input type="checkbox" id="nolist-on" checked>
+    <label for="nolist-on"><b style="color:var(--ink)">Thermal Printer No-List</b> &mdash; bans shading/gradients from all prompts</label>
+    <button id="nolist-toggle-btn">show items &#x25BE;</button>
+  </div>
+  <div id="nolist-body" hidden></div>
+</div>
+
+<main>
+<!-- ───────────── LEFT: input panel ───────────── -->
+<section class="card" id="left-panel">
+  <h2 id="left-title">1 &middot; Input</h2>
+  <p class="status" id="status">Choose a tab below to get started.</p>
+
+  <!-- ── main tab nav ── -->
+  <div class="main-tabs" id="main-tabs">
+    <button data-mtab="text" class="active">&#x270E; Text</button>
+    <button data-mtab="photo">&#x1F4F7; Photo</button>
+    <button data-mtab="ai">&#x2728; AI Redraw</button>
+    <button data-mtab="previews" class="stub">&#x1F9EE; Previews</button>
+    <button data-mtab="select" class="stub">&#x1F3AF; Selection</button>
+    <button data-mtab="settings">&#x2699; Settings</button>
+  </div>
+
+  <!-- ════ TAB: TEXT ════ -->
+  <div id="tab-text">
+    <p class="hint">Type your text, pick a font style, choose outline-only or AI-stylized lettering.</p>
+    <textarea id="txt-input" placeholder="Your text here…" rows="2"></textarea>
+
+    <div style="margin:14px 0 8px"><h3>Font style</h3></div>
+    <div class="font-grid" id="font-grid">
+      <!-- populated by JS from FONTS array -->
+    </div>
+
+    <div style="margin:14px 0 8px"><h3>Generation mode</h3></div>
+    <div class="mode-row">
+      <button class="mode-btn active" data-tmode="outline">
+        &#x25A1; Font Outline
+        <small>Instant &middot; no AI</small>
+      </button>
+      <button class="mode-btn" data-tmode="ai-text">
+        &#x2728; AI Stylized
+        <small>SDXL &middot; ~1 min</small>
+      </button>
+    </div>
+
+    <div id="txt-style-chips" style="display:none">
+      <h3 style="margin-bottom:8px">Tattoo style chips</h3>
+      <p class="hint" style="margin-bottom:8px">Click to add or remove from the active prompt.</p>
+      <div class="chip-bank" id="style-chip-bank"></div>
+    </div>
+  </div>
+
+  <!-- ════ TAB: PHOTO ════ -->
+  <div id="tab-photo" hidden>
+    <div id="drop-zone">
+      <span class="icon">&#x1F4F7;</span>
+      <p><strong>Drag &amp; drop</strong> your photo here<br>or <strong>click to browse</strong><br><small style="opacity:.6">JPG &middot; PNG &middot; WEBP &middot; up to 15 MB</small></p>
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+
+    <div id="editor" hidden>
+      <div class="inner-tabs">
+        <button data-tab="adjust" class="active">&#x2702; Crop &amp; adjust</button>
+        <button data-tab="subject">&#x1F3AF; Subject</button>
+      </div>
+      <div id="stage-wrap">
+        <div id="stage">
+          <canvas id="view"></canvas>
+          <img id="ov" alt="" hidden>
+          <div id="marks"></div>
+          <div id="cropbox"><i data-h="nw"></i><i data-h="n"></i><i data-h="ne"></i><i data-h="e"></i><i data-h="se"></i><i data-h="s"></i><i data-h="sw"></i><i data-h="w"></i></div>
+          <div class="spin" id="stage-spin" hidden></div>
+        </div>
+      </div>
+
+      <div id="panel-adjust">
+        <div class="row"><label>Rotate / flip</label>
+          <button class="chip" data-act="rotL" title="Rotate left">&#x21B6; 90&deg;</button>
+          <button class="chip" data-act="rotR" title="Rotate right">&#x21B7; 90&deg;</button>
+          <button class="chip" data-act="flipH" title="Flip left-right">&#x21C4; Flip</button>
+          <button class="chip" data-act="flipV" title="Flip top-bottom">&#x21C5; Flip</button>
+        </div>
+        <div class="row" id="aspects"><label>Crop shape</label>
+          <button class="chip active" data-a="0">Free</button><button class="chip" data-a="1">1:1</button><button class="chip" data-a="0.8">4:5</button>
+          <button class="chip" data-a="1.5">3:2</button><button class="chip" data-a="1.7778">16:9</button>
+          <button class="chip" data-act="cropReset">Reset crop</button>
+        </div>
+        <div class="slider"><label for="s-bright">Brightness</label><output id="o-bright">0</output><input type="range" id="s-bright" min="-100" max="100" step="1" value="0"></div>
+        <div class="slider"><label for="s-contrast">Contrast</label><output id="o-contrast">0</output><input type="range" id="s-contrast" min="-100" max="100" step="1" value="0"></div>
+        <label class="check"><input type="checkbox" id="c-auto"> Auto-levels (stretch dull or washed-out photos)</label>
+        <p class="hint">Drag the box to crop. Cropping tight to what you want inked gives the cleanest stencil.</p>
+        <div id="simplify">
+          <div class="top"><h3>Simplify the photo</h3></div>
+          <div class="row" id="fpresets"><label>Quick filters</label>
+            <button class="chip" data-f="none">None</button>
+            <button class="chip" data-f="skin">Smooth skin</button>
+            <button class="chip" data-f="beard">Stubble &amp; beard</button>
+            <button class="chip" data-f="portrait">Portrait</button>
+            <button class="chip" data-f="bold">Bold &amp; simple</button>
+          </div>
+          <div class="slider"><label for="f-stubble">Remove beard &amp; stubble (keeps tattoos &amp; piercings)</label><output id="o-stubble">50</output><input type="range" id="f-stubble" min="0" max="65" step="5" value="50"></div>
+          <div class="slider"><label for="f-skin">Smooth skin (wrinkles &amp; blemishes)</label><output id="o-skin">0</output><input type="range" id="f-skin" min="0" max="15" step="1" value="0"></div>
+          <div class="slider"><label for="f-smooth">Hide stubble, pores &amp; specks</label><output id="o-smooth">0</output><input type="range" id="f-smooth" min="10" max="35" step="1" value="0"></div>
+          <div class="slider"><label for="f-texture">Flatten shading</label><output id="o-texture">0</output><input type="range" id="f-texture" min="0" max="10" step="1" value="0"></div>
+        </div>
+      </div>
+
+      <div id="panel-subject" hidden>
+        <div class="row"><label>Click mode</label>
+          <button class="chip active" data-mode="pick">&#x1F3AF; Pick object</button>
+          <button class="chip" data-mode="add">&#xFF0B; Add to subject</button>
+          <button class="chip" data-mode="remove">&#xFF0D; Remove part</button>
+          <button class="chip" data-act="autoSubject">&#x21BA; Auto subject</button>
+        </div>
+        <p class="hint">The <b>bright area</b> is the subject (gold outline). <b>Click an object</b> to make it the subject. <b>Shift</b>-click adds, <b>Alt</b>/right-click removes.</p>
+        <div class="ai-line" id="ai-line" hidden></div>
+      </div>
+
+      <div class="row"><button class="chip" id="save-prep">&#x2B07; Save prepared photo</button><span class="hint" style="margin:0">crop, adjustments and smoothing applied</span></div>
+      <div style="text-align:center"><button class="link" id="new-btn">&#x2716; Choose a different photo</button></div>
+    </div>
+  </div>
+
+  <!-- ════ TAB: AI REDRAW ════ -->
+  <div id="tab-ai" hidden>
+    <p class="hint">The AI model (SDXL + ControlNet) redraws your photo as bold tattoo flash. <b>Upload a photo first</b> in the Photo tab.</p>
+    <div id="ai-no-photo" style="text-align:center;padding:30px 0;color:var(--muted)">
+      &#x2190; Upload a photo in the <b>Photo</b> tab first
+    </div>
+    <div id="ai-photo-ready" hidden>
+      <div class="row"><label>Goal</label>
+        <button class="chip active" data-g="stencil" title="Black-and-white flash linework you can print as a stencil">Stencil / flash</button>
+        <button class="chip" data-g="concept" title="A character with tattoos — not a printable stencil">Concept art</button>
+      </div>
+      <label for="gen-prompt" class="hint" style="display:block;margin:6px 0 4px">Prompt &mdash; <b>{subject}</b> is replaced with what the AI sees.</label>
+      <textarea id="gen-prompt" rows="5"></textarea>
+      <label for="gen-negative" class="hint" style="display:block;margin:10px 0 4px">Negative prompt &mdash; what to keep <b>out</b>.</label>
+      <textarea id="gen-negative" rows="2"></textarea>
+      <p class="hint" style="margin-top:8px">First run loads the model (~1 min), then each drawing takes ~1 min.</p>
+    </div>
+  </div>
+
+  <!-- ════ TAB: PREVIEWS ════ -->
+  <div id="tab-previews" hidden>
+    <div id="previews-empty" style="text-align:center;padding:40px 0;color:var(--muted)">
+      Generate with <b>Candidates &gt; 1</b> in Settings to see previews here.
+    </div>
+    <div id="previews-grid-wrap" hidden>
+      <h3 style="margin-bottom:10px">Pick a candidate</h3>
+      <div id="preview-grid"></div>
+      <p class="hint" style="margin-top:10px">Click the one you like best. It becomes the stencil output.</p>
+    </div>
+  </div>
+
+  <!-- ════ TAB: SELECTION ════ -->
+  <div id="tab-select" hidden>
+    <p class="hint">Fine-tune which part of the photo gets the full line work.</p>
+    <div id="select-no-photo" style="text-align:center;padding:30px 0;color:var(--muted)">
+      &#x2190; Upload a photo in the <b>Photo</b> tab first
+    </div>
+    <div id="select-ready" hidden>
+      <div class="row"><label>Click mode</label>
+        <button class="chip active" data-smode="pick">&#x1F3AF; Pick object</button>
+        <button class="chip" data-smode="add">&#xFF0B; Add</button>
+        <button class="chip" data-smode="remove">&#xFF0D; Remove</button>
+        <button class="chip" data-act="autoSubject2">&#x21BA; Auto</button>
+      </div>
+      <div id="select-stage-wrap" style="display:flex;justify-content:center;background:#050505;border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:12px">
+        <img id="select-overlay" alt="Subject overlay" style="max-width:100%;border-radius:6px;max-height:300px;object-fit:contain">
+      </div>
+      <div class="ai-line" id="ai-line2" hidden></div>
+    </div>
+  </div>
+
+  <!-- ════ TAB: SETTINGS ════ -->
+  <div id="tab-settings" hidden>
+    <h3>AI Model Settings</h3>
+    <div class="row"><label>Base model</label>
+      <button class="chip active" data-base="sdxl" title="Standard SDXL 1.0. The model tattoo LoRAs were trained on.">SDXL base</button>
+      <button class="chip" data-base="juggernaut" title="RealVisXL-style photoreal base.">Juggernaut XL</button>
+    </div>
+    <div class="row"><label>Style LoRA</label>
+      <button class="chip active" data-lora="tattoo" title="Trigger word: tattoo. Bold flash art.">Flash tattoo</button>
+      <button class="chip" data-lora="design" title="Trigger word: Tattoo_gen. Clean line art.">Tattoo Design XL</button>
+      <button class="chip" data-lora="none" title="No LoRA.">None</button>
+    </div>
+    <div class="slider"><label for="ai-loraw">LoRA weight</label><output id="o-loraw">0.65</output>
+      <input type="range" id="ai-loraw" min="0.1" max="1.2" step="0.05" value="0.65">
+      <small><span>Subtle</span><span>0.6–0.85 recommended</span></small></div>
+    <div class="slider"><label for="ai-guidance">CFG scale (prompt strength)</label><output id="o-guidance">7.5</output>
+      <input type="range" id="ai-guidance" min="1" max="15" step="0.5" value="7.5">
+      <small><span>Loose / creative</span><span>7–8.5 recommended</span></small></div>
+    <div class="slider"><label for="ai-scale">ControlNet weight</label><output id="o-scale">0.85</output>
+      <input type="range" id="ai-scale" min="0.3" max="1.0" step="0.05" value="0.85">
+      <small><span>Loose likeness</span><span>0.80–0.95 keeps piercings/placement</span></small></div>
+    <div class="slider"><label for="ai-steps">Sampling steps</label><output id="o-steps">28</output>
+      <input type="range" id="ai-steps" min="10" max="50" step="1" value="28">
+      <small><span>Fast</span><span>25–30 recommended</span></small></div>
+    <div class="row"><label>Candidates</label>
+      <button class="chip active" data-count="1">1 (fastest)</button>
+      <button class="chip" data-count="2">2</button>
+      <button class="chip" data-count="3">3</button>
+      <button class="chip" data-count="4">4</button>
+    </div>
+    <p class="hint">More than 1 candidate lets you pick the best in the <b>Previews</b> tab.</p>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+    <h3>Thermal No-List</h3>
+    <label class="check"><input type="checkbox" id="settings-nolist-on" checked> Apply thermal printer no-list to all prompts</label>
+    <p class="hint">Bans: ambient light, soft shading, gradients, diffuse lighting, noise, grain, watercolor, airbrush, halftone, stippling, crosshatching, bokeh, fog, blur, painterly, photorealistic skin, pores, freckles, color, grey tones, feathered edges.</p>
   </div>
 </section>
 
-<!-- ───────────── 2 · stencil ───────────── -->
+<!-- ───────────── RIGHT: stencil output ───────────── -->
 <section class="card">
-  <h2>2 &middot; Stencil</h2>
-  <div class="bar" id="bar" hidden></div>
-  <p class="status" id="status">Upload a photo to get started.</p>
-  <div id="placeholder">Your stencil appears here.<br>Afterwards you can fine-tune it with the sliders &mdash; including bringing back the background line work.</div>
+  <h2>2 &middot; Stencil output</h2>
+  <div class="bar" id="bar2" hidden></div>
+  <div id="placeholder">Your stencil appears here.<br>Choose a generation method on the left, then press <b>Generate</b>.</div>
   <div id="result" hidden>
-    <div id="previews" hidden style="margin-bottom:14px">
-      <h3 style="margin-bottom:10px">Previews &mdash; pick one</h3>
-      <div id="preview-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"></div>
-      <p class="hint" style="margin-top:10px">Click the one you like best. It becomes the AI drawing below.</p>
-    </div>
     <div id="ai-draw" hidden>
-      <div class="subj-row"><img id="gen-img" alt="AI drawing" style="width:150px;height:150px;border-radius:6px;background:#fff;object-fit:contain;flex:none">
+      <div style="display:flex;gap:12px;align-items:center;padding:10px;margin-bottom:14px;background:var(--raised);border:1px solid var(--border);border-radius:8px">
+        <img id="gen-img" alt="AI drawing" style="width:120px;height:120px;border-radius:6px;background:#fff;object-fit:contain;flex:none">
         <div><b>AI drawing</b><div class="hint" style="margin:2px 0 8px" id="gen-note">The stencil below is made from this drawing.</div>
-          <button class="chip" id="gen-again">&#x21BA; New variation</button> <a class="chip" id="gen-dl" href="#" download="tattoo-ai-drawing.png" style="text-decoration:none">&#x2B07; Drawing</a></div></div>
+          <button class="chip" id="gen-again">&#x21BA; New variation</button>
+          <a class="chip" id="gen-dl" href="#" download="tattoo-ai-drawing.png" style="text-decoration:none">&#x2B07; Drawing</a></div>
+      </div>
     </div>
     <div class="preview-wrap" id="stencil-wrap"><img id="stencil-img" alt="Generated stencil"><div id="busy" hidden></div></div>
     <div class="dl-buttons">
@@ -253,26 +404,33 @@ footer a { color:var(--accent); text-decoration:none; }
       <a id="dl-pdf" class="dl-btn pdf" href="#" download="tattoo-stencil.pdf">&#x2B07; PDF (print)</a>
     </div>
     <div id="info"></div>
+
+    <!-- AI stencil post-processing -->
     <div id="post-ai" hidden style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px">
-      <div class="top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0;font-size:.9rem">AI stencil settings</h3></div>
-      <div class="slider"><label for="a-black">Black level</label><output id="o-black">90</output><input type="range" id="a-black" min="40" max="190" step="1" value="90"><small><span>Only the darkest</span><span>More becomes ink</span></small></div>
+      <h3 style="margin-bottom:10px">AI stencil settings</h3>
+      <div class="slider"><label for="a-black">Black level</label><output id="o-black">90</output><input type="range" id="a-black" min="40" max="190" step="1" value="90"><small><span>Only darkest</span><span>More becomes ink</span></small></div>
       <div class="slider"><label for="a-speck">Remove small marks</label><output id="o-speck">35</output><input type="range" id="a-speck" min="0" max="100" step="1" value="35"><small><span>Keep everything</span><span>Cleaner</span></small></div>
       <div class="row" id="a-shade"><label>Grey shading</label><button class="chip active" data-sh="none">None</button><button class="chip" data-sh="dots">Dots</button><button class="chip" data-sh="lines">Hatching</button></div>
-      <label class="check"><input type="checkbox" id="a-mirror"> Mirror image (for thermal transfer paper)</label>
+      <label class="check"><input type="checkbox" id="a-mirror"> Mirror (thermal transfer paper)</label>
     </div>
+
+    <!-- Photo trace post-processing -->
     <div id="post">
       <div class="top"><h3>Post-processing</h3><button class="chip" id="post-reset">Reset</button></div>
-      <div class="subj-row">
-        <img id="subj-thumb" alt="Subject of focus">
-        <div><b>Subject of focus</b><div class="hint" style="margin:2px 0 8px">The bright area inside the gold outline gets the full line work.</div>
-          <button class="chip" id="change-subject">&#x1F3AF; Change subject</button> <button class="chip" id="subj-auto">&#x21BA; Auto</button></div>
+      <div id="post-subj" style="display:flex;gap:12px;align-items:center;padding:10px;margin-bottom:14px;background:var(--raised);border:1px solid var(--border);border-radius:8px">
+        <img id="subj-thumb" alt="Subject" style="width:96px;height:96px;object-fit:contain;background:#050505 center/contain no-repeat;border-radius:6px;flex:none">
+        <div><b>Subject of focus</b>
+          <div class="hint" style="margin:2px 0 8px">The bright area inside the gold outline gets full line work.</div>
+          <button class="chip" id="change-subject">&#x1F3AF; Change subject</button>
+          <button class="chip" id="subj-auto">&#x21BA; Auto</button>
+        </div>
       </div>
       <div class="row" id="presets"><label>Presets</label>
-        <button class="chip" data-p="portrait" title="Faces: hides wrinkles and blemishes, keeps eyes, brows, nose, mouth">Clean portrait</button>
-        <button class="chip" data-p="beard" title="Stubble and beards become a clean outline">Beard &amp; stubble</button>
-        <button class="chip" data-p="minimal" title="Fewest lines">Minimal</button>
-        <button class="chip" data-p="detailed" title="Keeps tattoos and fine detail">Keep detail</button>
-        <button class="chip" data-p="original" title="No filters">Original</button>
+        <button class="chip" data-p="portrait">Clean portrait</button>
+        <button class="chip" data-p="beard">Beard &amp; stubble</button>
+        <button class="chip" data-p="minimal">Minimal</button>
+        <button class="chip" data-p="detailed">Keep detail</button>
+        <button class="chip" data-p="original">Original</button>
       </div>
       <div class="slider"><label for="p-background">Background line work</label><output id="v-background">Subject only</output>
         <input type="range" id="p-background" min="0" max="100" step="1" value="0"><small><span>Subject only</span><span>Whole photo</span></small></div>
@@ -294,482 +452,578 @@ footer a { color:var(--accent); text-decoration:none; }
   </div>
 </section>
 </main>
+
 <footer><a href="https://tat.signaturediversified.com">tat.signaturediversified.com</a> &nbsp;&middot;&nbsp; AI Tattoo Stencil Generator &nbsp;&middot;&nbsp; <a href="https://github.com/xmindpingx/tattooshop">source</a></footer>
 
 <script>
-const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; };
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const DEFAULT_STYLE = { background:0, detail:65, cleanup:30, weightMm:0.4, mirror:false, smooth:10, texture:0, skin:0, stubble:50, varw:60, fills:40, shadows:0 };   // tuned on a tattooed, stubbled portrait vs a flash-art reference
-const S = { base:null, baseId:0, bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, tab:'adjust',
-  job:null, points:[], mode:'pick', sizeIn:5, style:{...DEFAULT_STYLE}, styleTouched:false, hasStencil:false, prepCache:null };
+'use strict';
+// ── Constants ──────────────────────────────────────────────────────────────────
+const DEFAULT_STYLE = {background:0,detail:65,cleanup:30,weightMm:0.4,mirror:false,smooth:10,texture:0,skin:0,stubble:50,varw:60,fills:40,shadows:0};
+const PRESETS = {portrait:[0,10,0,65,30,50],beard:[0,25,0,60,40,65],minimal:[10,30,0,45,60,60],detailed:[0,10,0,85,15,35],original:[0,10,0,65,30,0]};
+const PKEYS   = ['skin','smooth','texture','detail','cleanup','stubble'];
+const FILTERS = {none:[0,10,0],skin:[15,10,0],beard:[0,30,0],portrait:[10,15,0],bold:[15,35,10]};
+const FONTS   = [
+  {name:'Cinzel Decorative', url:'https://fonts.gstatic.com/s/cinzeldecorativе/v16/dg45iefbt3vAfBT_AVPqmMGkZKDIBpfLd.woff2', cat:'gothic'},
+  {name:'MedievalSharp',     url:'https://fonts.googleapis.com/css2?family=MedievalSharp', cat:'gothic'},
+  {name:'UnifrakturMaguntia',url:'https://fonts.googleapis.com/css2?family=UnifrakturMaguntia', cat:'gothic'},
+  {name:'Great Vibes',       url:'https://fonts.googleapis.com/css2?family=Great+Vibes', cat:'script'},
+  {name:'Pacifico',          url:'https://fonts.googleapis.com/css2?family=Pacifico', cat:'script'},
+  {name:'Lobster',           url:'https://fonts.googleapis.com/css2?family=Lobster', cat:'script'},
+  {name:'Bebas Neue',        url:'https://fonts.googleapis.com/css2?family=Bebas+Neue', cat:'bold'},
+  {name:'Oswald',            url:'https://fonts.googleapis.com/css2?family=Oswald:wght@700', cat:'bold'},
+  {name:'Anton',             url:'https://fonts.googleapis.com/css2?family=Anton', cat:'bold'},
+  {name:'Pinyon Script',     url:'https://fonts.googleapis.com/css2?family=Pinyon+Script', cat:'fineline'},
+  {name:'Alex Brush',        url:'https://fonts.googleapis.com/css2?family=Alex+Brush', cat:'fineline'},
+  {name:'Euphoria Script',   url:'https://fonts.googleapis.com/css2?family=Euphoria+Script', cat:'fineline'},
+];
+const STYLE_CHIPS = [
+  'bold black outlines','crisp hard edges','razor-sharp line art','clean vector lines',
+  'thick ink strokes','pure black on white','solid black fills','stark high contrast',
+  'comic ink style','flash tattoo style','thermal stencil ready','geometric shapes',
+  'tribal patterns','blackwork','fine line detail','stipple shading',
+];
+const NOLIST_ITEMS = [
+  'ambient light','global illumination','soft shading','smooth gradients','diffuse lighting',
+  'subsurface scattering','rim glow','bokeh','depth of field','fog','haze','noise','grain',
+  'halftone','stippling','crosshatching','watercolor wash','airbrush','soft focus','blurry',
+  'painterly','photorealistic skin texture','pores','freckles','wrinkles','color','grey tones',
+  'mid-tones','feathered edges',
+];
 
-/* ───────── status helpers ───────── */
-function say(msg, cls = '') { const s = $('#status'); s.textContent = msg; s.className = 'status ' + cls; }
-function bar(on) { $('#bar').hidden = !on; }
-async function api(url, body, form) {
-  const r = await fetch(url, form ? { method:'POST', body:form } : { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) { if (r.status === 404) S.job = null; throw new Error(d.error || ('Server error ' + r.status)); }
-  return d;
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  base:null, baseId:0, bright:0, contrast:0, auto:false,
+  crop:{x:0,y:0,w:1,h:1}, aspect:0,
+  job:null, points:[], mode:'pick', sizeIn:5,
+  style:{...DEFAULT_STYLE}, styleTouched:false,
+  hasStencil:false, prepCache:null,
+  hasPhoto:false,
+  textMode:'outline', selectedFont:FONTS[0].name,
+  activeChips:new Set(), nolistOn:true,
+};
+// ── Utility ───────────────────────────────────────────────────────────────────
+const qs  = (s,r=document)=>r.querySelector(s);
+const qsa = (s,r=document)=>r.querySelectorAll(s);
+const $   = id=>document.getElementById(id);
+function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,+v||0));}
+function show(el,vis=true){if(el)el.style.display=vis?'':'none';}
+function hide(el){show(el,false);}
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function setMainTab(mtab){
+  qsa('.main-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.mtab===mtab));
+  qsa('.mtab-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===mtab));
+  // show nolist panel only on tabs where it is relevant
+  const nolistWrap=$('nolist-wrap');
+  if(nolistWrap)nolistWrap.style.display=['text','ai'].includes(mtab)?'':'none';
+  // show/hide AI photo-needed message
+  if(mtab==='ai'){refreshAiPhotoState();}
+  if(mtab==='select'){refreshSelectState();}
+}
+function refreshAiPhotoState(){
+  show($('ai-no-photo'),!S.hasPhoto);
+  show($('ai-photo-ready'),S.hasPhoto);
+}
+function refreshSelectState(){
+  show($('select-no-photo'),!S.hasPhoto);
+  show($('select-ready'),S.hasPhoto);
 }
 
-/* ───────── loading a photo ───────── */
-const dz = $('#drop-zone'), fi = $('#file-input');
-dz.onclick = () => fi.click();
-fi.onchange = e => loadFile(e.target.files[0]);
-dz.ondragover = e => { e.preventDefault(); dz.classList.add('dragover'); };
-dz.ondragleave = () => dz.classList.remove('dragover');
-dz.ondrop = e => { e.preventDefault(); dz.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); };
-$('#new-btn').onclick = () => { $('#editor').hidden = true; dz.hidden = false; fi.value = ''; S.job = null; };
-
-async function loadFile(f) {
-  if (!f || !/^image\//.test(f.type)) return;
-  let bmp;
-  try { bmp = await createImageBitmap(f, { imageOrientation:'from-image' }); }
-  catch { try { bmp = await createImageBitmap(f); } catch { say('That file could not be read as an image.', 'error'); return; } }
-  const sc = Math.min(1, 4000 / Math.max(bmp.width, bmp.height));
-  const c = mk(bmp.width * sc, bmp.height * sc), x = c.getContext('2d');
-  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
-  Object.assign(S, { base:c, baseId:Date.now(), bright:0, contrast:0, auto:false, crop:{x:0,y:0,w:1,h:1}, aspect:0, job:null, points:[], prepCache:null, mode:'pick', styleTouched:false, hasStencil:false, style:{...DEFAULT_STYLE} });
-  $('#s-bright').value = 0; $('#s-contrast').value = 0; $('#c-auto').checked = false; syncOutputs(); setAspectChip(0);
-  dz.hidden = true; $('#editor').hidden = false;
-  setTab('adjust');
-  say(S.hasStencil ? 'New photo loaded. Generate to replace the stencil.' : 'Crop and adjust if you like, then press Generate.');
+// ── Size control (action-bar, shared) ─────────────────────────────────────────
+function initSizeControl(){
+  const inp=$('size-in'), cmSpan=$('size-cm');
+  function updateSize(v){
+    S.sizeIn=clamp(v,0.5,14);
+    if(inp)inp.value=S.sizeIn;
+    if(cmSpan)cmSpan.textContent=(S.sizeIn*2.54).toFixed(1);
+    qsa('#size-chips button').forEach(b=>b.classList.toggle('active',+b.dataset.s===S.sizeIn));
+  }
+  if(inp)inp.addEventListener('input',e=>updateSize(e.target.value));
+  qsa('#size-chips button').forEach(b=>b.addEventListener('click',()=>updateSize(b.dataset.s)));
+  updateSize(5);
 }
-
-/* ───────── adjusted / cropped image ───────── */
-function renderAdjusted(scale) {
-  const b = S.base, c = mk(b.width * scale, b.height * scale), x = c.getContext('2d', { willReadFrequently:true });
-  x.drawImage(b, 0, 0, c.width, c.height);
-  if (S.bright || S.contrast || S.auto) {
-    const id = x.getImageData(0, 0, c.width, c.height), d = id.data;
-    let lo = 0, hi = 255;
-    if (S.auto) {
-      const h = new Uint32Array(256);
-      for (let i = 0; i < d.length; i += 4) h[(d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8]++;
-      const n = d.length / 4; let a = 0; lo = 0; while (lo < 254 && (a += h[lo]) < n * 0.01) lo++;
-      a = 0; hi = 255; while (hi > lo + 8 && (a += h[hi]) < n * 0.01) hi--;
+// ── Thermal no-list panel ─────────────────────────────────────────────────────
+function initNolist(){
+  const body=$('nolist-body');
+  if(!body)return;
+  body.innerHTML=NOLIST_ITEMS.map(t=>`<span class="nolist-chip active" data-term="${t}">${t}</span>`).join('');
+  body.querySelectorAll('.nolist-chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('active')));
+  const toggle=$('nolist-toggle');
+  const content=qs('.nolist-content');
+  if(toggle&&content)toggle.addEventListener('click',()=>content.classList.toggle('open'));
+  // sync nolist-on checkbox with settings tab
+  const on=$('nolist-on'), son=$('settings-nolist-on');
+  function syncNolist(v){
+    S.nolistOn=v;
+    if(on)on.checked=v; if(son)son.checked=v;
+  }
+  if(on)on.addEventListener('change',e=>syncNolist(e.target.checked));
+  if(son)son.addEventListener('change',e=>syncNolist(e.target.checked));
+  syncNolist(true);
+}
+function getNolistNeg(){
+  if(!S.nolistOn)return '';
+  return Array.from(qsa('#nolist-body .nolist-chip.active')).map(c=>c.dataset.term).join(', ');
+}
+// ── Font picker (Tab 1) ───────────────────────────────────────────────────────
+function initFontGrid(){
+  const grid=$('font-grid');
+  if(!grid)return;
+  FONTS.forEach(f=>{
+    // inject Google Fonts link if not already present
+    if(!document.querySelector(`link[data-font="${f.name}"]`)){
+      const lk=document.createElement('link');
+      lk.rel='stylesheet'; lk.dataset.font=f.name;
+      lk.href=`https://fonts.googleapis.com/css2?family=${encodeURIComponent(f.name)}:wght@400;700&display=swap`;
+      document.head.appendChild(lk);
     }
-    const cf = S.contrast >= 0 ? 1 + S.contrast / 50 : 1 + S.contrast / 100, add = S.bright * 1.27, sa = 255 / Math.max(8, hi - lo);
-    const lut = new Uint8ClampedArray(256);
-    for (let i = 0; i < 256; i++) lut[i] = ((i - lo) * sa - 128) * cf + 128 + add;
-    for (let i = 0; i < d.length; i += 4) { d[i] = lut[d[i]]; d[i+1] = lut[d[i+1]]; d[i+2] = lut[d[i+2]]; }
-    x.putImageData(id, 0, 0);
-  }
-  return c;
-}
-const sigOf = () => JSON.stringify([S.baseId, S.bright, S.contrast, S.auto, ...['x','y','w','h'].map(k => +S.crop[k].toFixed(4))]);
-function prepared() {                       // the photo exactly as it will be sent: rotated/flipped, adjusted, cropped
-  const sig = sigOf();
-  if (S.prepCache && S.prepCache.sig === sig) return S.prepCache.canvas;
-  const b = S.base, cl = Math.max(S.crop.w * b.width, S.crop.h * b.height), sc = Math.min(1, 2400 / cl);
-  const full = renderAdjusted(sc), r = S.crop;
-  const out = mk(r.w * full.width, r.h * full.height);
-  out.getContext('2d').drawImage(full, r.x * full.width, r.y * full.height, out.width, out.height, 0, 0, out.width, out.height);
-  S.prepCache = { sig, canvas:out };
-  return out;
-}
-
-/* ───────── stage drawing ───────── */
-function draw() {
-  if (!S.base) return;
-  const view = $('#view');
-  let c;
-  if (S.tab === 'adjust') c = renderAdjusted(Math.min(1, 1100 / Math.max(S.base.width, S.base.height)));
-  else { const p = prepared(), k = Math.min(1, 1100 / Math.max(p.width, p.height)); c = mk(p.width * k, p.height * k); c.getContext('2d').drawImage(p, 0, 0, c.width, c.height); }
-  view.width = c.width; view.height = c.height; view.getContext('2d').drawImage(c, 0, 0);
-  layoutStage(); layoutCrop();
-}
-function layoutStage() {
-  const wrap = $('#stage-wrap'), v = $('#view'), st = $('#stage'), maxW = wrap.clientWidth - 22;
-  if (maxW <= 0) return;
-  const k = Math.min(maxW / v.width, Math.min(520, innerHeight * 0.62) / v.height);
-  st.style.width = Math.round(v.width * k) + 'px'; st.style.height = Math.round(v.height * k) + 'px';
-}
-addEventListener('resize', layoutStage);
-function layoutCrop() {
-  const b = $('#cropbox'), r = S.crop;
-  b.hidden = S.tab !== 'adjust';
-  b.style.left = r.x * 100 + '%'; b.style.top = r.y * 100 + '%'; b.style.width = r.w * 100 + '%'; b.style.height = r.h * 100 + '%';
-}
-function syncOutputs() { $('#o-bright').textContent = S.bright; $('#o-contrast').textContent = S.contrast; }
-
-/* ───────── tabs ───────── */
-$$('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
-async function setTab(t) {
-  S.tab = t;
-  $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
-  $('#panel-adjust').hidden = t !== 'adjust'; $('#panel-subject').hidden = t !== 'subject';
-  $('#stage').classList.toggle('pick', t === 'subject');
-  $('#ov').hidden = t !== 'subject'; $('#marks').hidden = t !== 'subject';
-  if (t === 'subject') {
-    draw();
-    try { await ensurePrepared(); } catch (e) { say(e.message, 'error'); return; }
-    if (S.tab !== 'subject') return;
-    $('#ov').src = S.job.overlay; drawMarks();
-    fetch('/api/subject', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ jobId:S.job.id, warm:true }) }).catch(() => {});
-  } else draw();
-}
-
-/* ───────── rotate / flip / aspect / sliders ───────── */
-function transformBase(fn, w, h) { const c = mk(w, h), x = c.getContext('2d'); fn(x, c); S.base = c; S.baseId = Date.now(); S.job = null; S.prepCache = null; }
-const act = {
-  rotR() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(b, 0, 0); }, b.height, b.width); S.crop = { x:1 - r.y - r.h, y:r.x, w:r.h, h:r.w }; S.aspect = S.aspect ? 1 / S.aspect : 0; },
-  rotL() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(0, c.height); x.rotate(-Math.PI / 2); x.drawImage(b, 0, 0); }, b.height, b.width); S.crop = { x:r.y, y:1 - r.x - r.w, w:r.h, h:r.w }; S.aspect = S.aspect ? 1 / S.aspect : 0; },
-  flipH() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(b, 0, 0); }, b.width, b.height); S.crop = { ...r, x:1 - r.x - r.w }; },
-  flipV() { const b = S.base, r = S.crop; transformBase((x, c) => { x.translate(0, c.height); x.scale(1, -1); x.drawImage(b, 0, 0); }, b.width, b.height); S.crop = { ...r, y:1 - r.y - r.h }; },
-  cropReset() { S.crop = { x:0, y:0, w:1, h:1 }; S.aspect = 0; setAspectChip(0); },
-  autoSubject() { S.points = []; drawMarks(); sendPoints(); }
-};
-$$('[data-act]').forEach(b => b.onclick = () => { act[b.dataset.act](); if (S.tab === 'adjust') draw(); });
-function setAspectChip(a) { $$('#aspects [data-a]').forEach(b => b.classList.toggle('active', +b.dataset.a === a)); }
-$$('#aspects [data-a]').forEach(b => b.onclick = () => {
-  const a = +b.dataset.a; S.aspect = a; setAspectChip(a);
-  if (a) {
-    const bw = S.base.width, bh = S.base.height, r = S.crop, cx = r.x + r.w / 2, cy = r.y + r.h / 2;
-    let w = r.w, h = r.w * bw / (a * bh);
-    if (h > r.h) { h = r.h; w = h * bh * a / bw; }
-    w = Math.min(w, 1); h = Math.min(h, 1);
-    S.crop = { x:clamp(cx - w / 2, 0, 1 - w), y:clamp(cy - h / 2, 0, 1 - h), w, h };
-  }
-  layoutCrop();
-});
-const onAdj = () => { S.prepCache = null; draw(); };
-$('#s-bright').oninput = e => { S.bright = +e.target.value; syncOutputs(); onAdj(); };
-$('#s-contrast').oninput = e => { S.contrast = +e.target.value; syncOutputs(); onAdj(); };
-$('#c-auto').onchange = e => { S.auto = e.target.checked; onAdj(); };
-
-/* ───────── crop box dragging ───────── */
-function dragCrop(d, dx, dy) {
-  const bw = S.base.width, bh = S.base.height, MIN = 0.05; let { x, y, w, h } = d.r;
-  if (d.h === 'move') return { x:clamp(x + dx, 0, 1 - w), y:clamp(y + dy, 0, 1 - h), w, h };
-  const W = d.h.includes('w'), E = d.h.includes('e'), N = d.h.includes('n'), Sx = d.h.includes('s');
-  let x1 = x, y1 = y, x2 = x + w, y2 = y + h;
-  if (W) x1 = clamp(x + dx, 0, x2 - MIN); if (E) x2 = clamp(x + w + dx, x1 + MIN, 1);
-  if (N) y1 = clamp(y + dy, 0, y2 - MIN); if (Sx) y2 = clamp(y + h + dy, y1 + MIN, 1);
-  if (S.aspect) {
-    const ar = S.aspect, horiz = W || E, vert = N || Sx;
-    let nw = x2 - x1, nh = y2 - y1;
-    if (horiz && !vert) nh = nw * bw / (ar * bh); else if (vert && !horiz) nw = nh * bh * ar / bw;
-    else { const hw = nw * bw / (ar * bh); if (hw >= nh) nh = hw; else nw = nh * bh * ar / bw; }
-    const ax = W ? x2 : E ? x1 : (x1 + x2) / 2, ay = N ? y2 : Sx ? y1 : (y1 + y2) / 2;
-    const mw = W ? ax : E ? 1 - ax : 2 * Math.min(ax, 1 - ax), mh = N ? ay : Sx ? 1 - ay : 2 * Math.min(ay, 1 - ay);
-    const f = Math.min(1, mw / nw, mh / nh); nw *= f; nh *= f;
-    x1 = W ? ax - nw : E ? ax : ax - nw / 2; y1 = N ? ay - nh : Sx ? ay : ay - nh / 2; x2 = x1 + nw; y2 = y1 + nh;
-  }
-  return { x:x1, y:y1, w:x2 - x1, h:y2 - y1 };
-}
-(() => {
-  const box = $('#cropbox'); let drag = null;
-  box.onpointerdown = e => { drag = { h:e.target.dataset.h || 'move', sx:e.clientX, sy:e.clientY, r:{ ...S.crop } }; box.setPointerCapture(e.pointerId); e.preventDefault(); };
-  box.onpointermove = e => { if (!drag) return; const R = $('#stage').getBoundingClientRect(); S.crop = dragCrop(drag, (e.clientX - drag.sx) / R.width, (e.clientY - drag.sy) / R.height); layoutCrop(); };
-  box.onpointerup = box.onpointercancel = () => { drag = null; S.prepCache = null; };
-})();
-
-/* ───────── upload + auto subject + AI suggestions ───────── */
-let preparing = null;
-function ensurePrepared() {
-  const sig = sigOf();
-  if (S.job && S.job.sig === sig) return Promise.resolve(S.job);
-  if (preparing && preparing.sig === sig) return preparing.p;
-  const p = (async () => {
-    $('#stage-spin').hidden = false; say('Uploading and finding the subject…'); bar(true);
-    try {
-      const blob = await new Promise(r => prepared().toBlob(r, 'image/jpeg', 0.92));
-      const fd = new FormData(); fd.append('photo', blob, 'photo.jpg');
-      const d = await api('/api/prepare', null, fd);
-      S.job = { id:d.jobId, sig, overlay:d.overlay, ai:d.ai, skinShare:d.skinShare }; S.points = [];
-      if (d.skinShare > 0.4 && !S.styleTouched && !S.hasStencil) { PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); }   // skin-toned subject: start with the tuned portrait preset
-      showAI(null); pollAI(d.jobId);
-      say(d.isolated ? 'Subject found.' : 'No single subject stood out, so the whole photo is used.', 'ok');
-      return S.job;
-    } finally { $('#stage-spin').hidden = true; bar(false); preparing = null; }
-  })();
-  preparing = { sig, p };
-  return p;
-}
-async function pollAI(id) {
-  for (let i = 0; i < 70; i++) {
-    await new Promise(r => setTimeout(r, 2000));
-    if (!S.job || S.job.id !== id) return;
-    let d; try { d = await (await fetch('/api/ai/' + id)).json(); } catch { continue; }
-    if (d.status === 'done') {
-      S.job.ai = d.ai;
-      if (d.ai) { if (!S.styleTouched && !S.hasStencil) { Object.assign(S.style, aiDefaults(d.ai)); if (S.job.skinShare > 0.4) PKEYS.forEach((k, i) => S.style[k] = PRESETS.portrait[i]); syncStyleUI(); } showAI(d.ai); }
-      return;
-    }
-    if (d.status === 'none') return;
-  }
-}
-function showAI(ai) {
-  const line = $('#ai-line'), tags = $('#ai-tags'); tags.innerHTML = '';
-  if (!ai) { line.hidden = true; return; }
-  line.hidden = false; line.innerHTML = `<b>AI sees:</b> ${esc(ai.subject || 'the photo')}${ai.category ? ' (' + esc(ai.category) + ')' : ''}${ai.notes ? '<br>' + esc(ai.notes) : ''}`;
-  [[ai.subject, 1], [ai.category, 0], [ai.raw && ai.raw.lineWeight && 'weight: ' + ai.raw.lineWeight, 0], [ai.raw && ai.raw.shadingDensity && 'shading: ' + ai.raw.shadingDensity, 0]]
-    .filter(t => t[0]).forEach(([t, hi]) => { const s = document.createElement('span'); s.className = 'tag' + (hi ? ' hi' : ''); s.textContent = t; tags.appendChild(s); });
-}
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-
-/* ───────── subject picking ───────── */
-$$('[data-mode]').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; $$('[data-mode]').forEach(x => x.classList.toggle('active', x === b)); });
-function drawMarks() {
-  const m = $('#marks'); m.innerHTML = '';
-  S.points.forEach(p => { const d = document.createElement('i'); d.className = 'mk ' + (p.l ? 'pos' : 'neg'); d.style.left = p.x * 100 + '%'; d.style.top = p.y * 100 + '%'; m.appendChild(d); });
-}
-$('#stage').addEventListener('contextmenu', e => { if (S.tab === 'subject') e.preventDefault(); });
-$('#stage').addEventListener('pointerdown', e => {
-  if (S.tab !== 'subject' || !S.job || preparing) return;
-  const R = $('#stage').getBoundingClientRect(), p = { x:clamp((e.clientX - R.left) / R.width, 0, 1), y:clamp((e.clientY - R.top) / R.height, 0, 1) };
-  let mode = S.mode; if (e.shiftKey) mode = 'add'; if (e.altKey || e.button === 2) mode = 'remove';
-  if (mode === 'pick') S.points = [{ ...p, l:1 }]; else S.points.push({ ...p, l:mode === 'add' ? 1 : 0 });
-  drawMarks(); sendPoints(); e.preventDefault();
-});
-let segSeq = 0;
-async function sendPoints() {
-  const my = ++segSeq, before = S.points.slice();
-  $('#stage-spin').hidden = false;
-  try {
-    const r = await api('/api/subject', { jobId:S.job.id, points:S.points });
-    if (my !== segSeq) return;
-    S.job.overlay = r.overlay; $('#ov').src = r.overlay; $('#subj-thumb').src = r.overlay; say(S.points.length ? 'Subject updated.' : 'Back to the automatic subject.', 'ok');
-    if (S.hasStencil) scheduleRender(100);
-  } catch (e) { if (my === segSeq) { S.points = before.slice(0, -1); drawMarks(); say(e.message, 'error'); } }
-  finally { if (my === segSeq) $('#stage-spin').hidden = true; }
-}
-
-/* ───────── size ───────── */
-function setSize(v, fromChip) {
-  S.sizeIn = clamp(+v || 5, 0.5, 14); $('#size-cm').textContent = (S.sizeIn * 2.54).toFixed(1);
-  if (!fromChip) $$('#size-chips [data-s]').forEach(b => b.classList.toggle('active', +b.dataset.s === S.sizeIn)); else $('#size-in').value = S.sizeIn;
-  $$('#size-chips [data-s]').forEach(b => b.classList.toggle('active', +b.dataset.s === S.sizeIn));
-  if (S.hasStencil) scheduleRender(350);
-}
-$('#size-in').oninput = e => setSize(e.target.value);
-$$('#size-chips [data-s]').forEach(b => b.onclick = () => setSize(b.dataset.s, true));
-
-/* ───────── generate + live post-processing ───────── */
-const FMT = { background:v => v == 0 ? 'Subject only' : v >= 100 ? 'Whole photo' : v + '%', detail:v => v, cleanup:v => v, weightMm:v => (+v).toFixed(2) + ' mm', varw:v => v, fills:v => v, shadows:v => v };
-const FILTERS = { none:[0,10,0], skin:[15,10,0], beard:[0,30,0], portrait:[10,15,0], bold:[15,35,10] };   // kept inside the tested slider ranges
-// style presets, all inside the tested slider ranges: [skin, smooth, texture, detail, cleanup, stubble]
-const PRESETS = { portrait:[0,10,0,65,30,50], beard:[0,25,0,60,40,65], minimal:[10,30,0,45,60,60], detailed:[0,10,0,85,15,35], original:[0,10,0,65,30,0] };
-const PKEYS = ['skin', 'smooth', 'texture', 'detail', 'cleanup', 'stubble'];
-function aiDefaults(ai) {
-  const st = { ...DEFAULT_STYLE, background:0 };
-  if (!ai) return st;
-  Object.assign(st, ai.suggest || {});
-  if (/portrait|person|people|face|human/i.test(ai.category || '')) PKEYS.forEach((k, i) => st[k] = PRESETS.portrait[i]);
-  return st;
-}
-function syncPresetUI() {
-  $$('#presets [data-p]').forEach(b => b.classList.toggle('active', PRESETS[b.dataset.p].every((v, i) => S.style[PKEYS[i]] == v)));
-}
-$$('#presets [data-p]').forEach(b => b.onclick = () => { PRESETS[b.dataset.p].forEach((v, i) => S.style[PKEYS[i]] = v); S.styleTouched = true; syncStyleUI(); scheduleRender(50); });   // [skin, smooth, texture]
-function syncFilterUI() {
-  if (typeof syncPresetUI === 'function') syncPresetUI();
-  for (const k of ['stubble', 'skin', 'smooth', 'texture']) { $('#f-' + k).value = S.style[k]; $('#o-' + k).textContent = S.style[k]; }
-  $$('#fpresets [data-f]').forEach(b => { const f = FILTERS[b.dataset.f]; b.classList.toggle('active', f[0] == S.style.skin && f[1] == S.style.smooth && f[2] == S.style.texture); });
-}
-for (const k of ['stubble', 'skin', 'smooth', 'texture']) $('#f-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(400); };
-$$('#fpresets [data-f]').forEach(b => b.onclick = () => { const f = FILTERS[b.dataset.f]; [S.style.skin, S.style.smooth, S.style.texture] = f; S.styleTouched = true; syncFilterUI(); if (S.hasStencil) scheduleRender(50); });
-$('#save-prep').onclick = async () => {
-  const b = $('#save-prep'), t = b.textContent; b.disabled = true; b.textContent = 'Preparing…';
-  try {
-    await ensurePrepared();
-    const r = await fetch('/api/filtered', { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ jobId:S.job.id, smooth:S.style.smooth, texture:S.style.texture, skin:S.style.skin, stubble:S.style.stubble }) });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Could not prepare the photo');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = 'tattoo-photo-prepared.jpg'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  } catch (e) { say(e.message, 'error'); }
-  finally { b.disabled = false; b.textContent = t; }
-};
-function clampStyle() {
-  for (const [k, id] of [['stubble','f-stubble'],['skin','f-skin'],['smooth','f-smooth'],['texture','f-texture'],['detail','p-detail'],['cleanup','p-cleanup'],['weightMm','p-weightMm'],['varw','p-varw'],['fills','p-fills'],['shadows','p-shadows']]) {
-    const el = $('#' + id); if (el && Number.isFinite(+S.style[k])) S.style[k] = clamp(+S.style[k], +el.min, +el.max);
-  }
-}
-function syncStyleUI() {
-  clampStyle(); syncFilterUI(); syncPresetUI();
-  for (const k of ['background', 'detail', 'cleanup', 'weightMm', 'varw', 'fills', 'shadows']) { $('#p-' + k).value = S.style[k]; $('#v-' + k).textContent = FMT[k](S.style[k]); }
-  $('#p-mirror').checked = S.style.mirror;
-}
-for (const k of ['background', 'detail', 'cleanup', 'weightMm', 'varw', 'fills', 'shadows']) {
-  $('#p-' + k).oninput = e => { S.style[k] = +e.target.value; S.styleTouched = true; $('#v-' + k).textContent = FMT[k](S.style[k]); scheduleRender(250); };
-}
-$('#p-mirror').onchange = e => { S.style.mirror = e.target.checked; S.styleTouched = true; scheduleRender(50); };
-$('#post-reset').onclick = () => { const bg = S.style.background; S.style = aiDefaults(S.job && S.job.ai); S.styleTouched = false; syncStyleUI(); scheduleRender(50); };
-
-let rtimer = null, rendering = false, again = false;
-function scheduleRender(ms) { clearTimeout(rtimer); rtimer = setTimeout(runRender, ms); }
-async function runRender() {
-  if (rendering) { again = true; return; }
-  rendering = true;
-  try { do { again = false; await renderOnce(); } while (again); }
-  catch (e) { say(e.message, 'error'); }
-  finally { rendering = false; $('#busy').hidden = true; bar(false); }
-}
-async function renderOnce() {
-  if (!S.job) throw new Error('Session expired. Press Generate again.');
-  $('#busy').hidden = !S.hasStencil; bar(true);
-  clampStyle();
-  const r = await api('/api/render', { jobId:S.job.id, ...S.style, sizeIn:S.sizeIn });
-  await new Promise((res, rej) => { const im = new Image(); im.onload = () => { $('#stencil-img').src = im.src; res(); }; im.onerror = () => rej(new Error('Could not load the stencil image')); im.src = r.files.png; });
-  $('#dl-png').href = r.files.png; $('#dl-pdf').href = r.files.pdf;
-  const fit = r.fitScale < 0.995 ? `PDF is scaled to ${Math.round(r.fitScale * 100)}% to fit the page (the PNG is full size).` : `PDF prints at true size on US letter (${r.orientation}).`;
-  $('#info').innerHTML = `Stencil ${r.inches[0]} &times; ${r.inches[1]} in &middot; ink ${r.inkCoverage}% of the sheet &middot; ${fit}`;
-  try { const pc = prepared(), k = 192 / Math.max(pc.width, pc.height), c = mk(pc.width * k, pc.height * k); c.getContext('2d').drawImage(pc, 0, 0, c.width, c.height); $('#subj-thumb').style.backgroundImage = `url(${c.toDataURL('image/jpeg', 0.8)})`; } catch {}
-  $('#subj-thumb').src = S.job.overlay;
-  $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
-  say('Stencil ready. Fine-tune it below.', 'ok');
-}
-$('#gen-btn').onclick = async () => {
-  const b = $('#gen-btn'); b.disabled = true;
-  try { await ensurePrepared(); say('Drawing the stencil…'); await runRender(); }
-  catch (e) { say(e.message, 'error'); }
-  finally { b.disabled = false; }
-};
-$('#change-subject').onclick = async () => {
-  await setTab('subject'); $('#editor').scrollIntoView({ behavior:'smooth', block:'start' });
-  say('Click the object you want as the subject. The stencil updates by itself.');
-};
-$('#subj-auto').onclick = () => act.autoSubject();
-syncStyleUI();
-
-/* ───────── AI redraw (SDXL flash style) ───────── */
-S.method = 'trace'; S.goal = 'stencil'; S.gen = null; S.aiStyle = { black:90, speck:35, shade:'none', mirror:false };
-S.aiSettings = { base:'sdxl', lora:'tattoo', loraWeight:0.65, guidance:7.5, scale:0.85, steps:28, count:1 };
-let genInfo = null;
-fetch('/api/gen/info').then(r => r.json()).then(i => {
-  genInfo = i;
-  if (i.available) {
-    $('#method').hidden = false;
-    if (i.defaults) Object.assign(S.aiSettings, { guidance:i.defaults.guidance, scale:i.defaults.scale, steps:i.defaults.steps, loraWeight:i.defaults.loraWeight });
-    if (i.models) {
-      $$('#ai-settings-body [data-base]').forEach(b => b.hidden = !i.models.bases.includes(b.dataset.base));
-      $$('#ai-settings-body [data-lora]').forEach(b => b.hidden = b.dataset.lora !== 'none' && !i.models.loras.includes(b.dataset.lora));
-    }
-    syncAiSettingsUI(); fillTemplate();
-  }
-}).catch(() => {});
-function fillTemplate() {
-  if (!genInfo || !genInfo.templates) return;
-  $('#gen-prompt').value = genInfo.templates[S.goal];
-  $('#gen-negative').value = (genInfo.negatives && genInfo.negatives[S.goal]) || '';
-}
-function setMethod(m) {
-  S.method = m; $$('#method [data-m]').forEach(b => b.classList.toggle('active', b.dataset.m === m));
-  $('#ai-opts').hidden = m !== 'ai'; $('#gen-btn').textContent = m === 'ai' ? 'Draw with AI →' : 'Generate stencil →';
-  if (S.hasStencil) { $('#post').hidden = m === 'ai'; $('#post-ai').hidden = m !== 'ai'; }
-}
-$$('#method [data-m]').forEach(b => b.onclick = () => setMethod(b.dataset.m));
-$$('#ai-opts [data-g]').forEach(b => b.onclick = () => { S.goal = b.dataset.g; $$('#ai-opts [data-g]').forEach(x => x.classList.toggle('active', x === b)); fillTemplate(); });
-$('#ai-settings-toggle').onclick = () => {
-  const open = $('#ai-settings-body').hidden;
-  $('#ai-settings-body').hidden = !open; $('#ai-settings-toggle').textContent = open ? 'Hide advanced settings' : 'Show advanced settings';
-};
-function syncAiSettingsUI() {
-  const a = S.aiSettings;
-  $$('#ai-settings-body [data-base]').forEach(b => b.classList.toggle('active', b.dataset.base === a.base));
-  $$('#ai-settings-body [data-lora]').forEach(b => b.classList.toggle('active', b.dataset.lora === a.lora));
-  $$('#ai-settings-body [data-count]').forEach(b => b.classList.toggle('active', +b.dataset.count === a.count));
-  $('#ai-loraw').value = a.loraWeight; $('#o-loraw').textContent = a.loraWeight;
-  $('#ai-guidance').value = a.guidance; $('#o-guidance').textContent = a.guidance;
-  $('#ai-scale').value = a.scale; $('#o-scale').textContent = a.scale;
-  $('#ai-steps').value = a.steps; $('#o-steps').textContent = a.steps;
-}
-$$('#ai-settings-body [data-base]').forEach(b => b.onclick = () => { S.aiSettings.base = b.dataset.base; syncAiSettingsUI(); });
-$$('#ai-settings-body [data-lora]').forEach(b => b.onclick = () => { S.aiSettings.lora = b.dataset.lora; syncAiSettingsUI(); });
-$$('#ai-settings-body [data-count]').forEach(b => b.onclick = () => { S.aiSettings.count = +b.dataset.count; syncAiSettingsUI(); });
-$('#ai-loraw').oninput = e => { S.aiSettings.loraWeight = +e.target.value; $('#o-loraw').textContent = e.target.value; };
-$('#ai-guidance').oninput = e => { S.aiSettings.guidance = +e.target.value; $('#o-guidance').textContent = e.target.value; };
-$('#ai-scale').oninput = e => { S.aiSettings.scale = +e.target.value; $('#o-scale').textContent = e.target.value; };
-$('#ai-steps').oninput = e => { S.aiSettings.steps = +e.target.value; $('#o-steps').textContent = e.target.value; };
-function syncAiUI() {
-  $('#o-black').textContent = S.aiStyle.black; $('#o-speck').textContent = S.aiStyle.speck; $('#a-mirror').checked = S.aiStyle.mirror;
-  $$('#a-shade [data-sh]').forEach(b => b.classList.toggle('active', b.dataset.sh === S.aiStyle.shade));
-}
-$('#a-black').oninput = e => { S.aiStyle.black = +e.target.value; syncAiUI(); scheduleFlash(250); };
-$('#a-speck').oninput = e => { S.aiStyle.speck = +e.target.value; syncAiUI(); scheduleFlash(250); };
-$('#a-mirror').onchange = e => { S.aiStyle.mirror = e.target.checked; scheduleFlash(50); };
-$$('#a-shade [data-sh]').forEach(b => b.onclick = () => { S.aiStyle.shade = b.dataset.sh; syncAiUI(); scheduleFlash(50); });
-let ftimer = null, flashing = false, flashAgain = false;
-function scheduleFlash(ms) { clearTimeout(ftimer); ftimer = setTimeout(runFlash, ms); }
-async function runFlash() {
-  if (!S.gen || S.gen.mode !== 'stencil') return;
-  if (flashing) { flashAgain = true; return; }
-  flashing = true;
-  try { do { flashAgain = false; await flashOnce(); } while (flashAgain); } catch (e) { say(e.message, 'error'); } finally { flashing = false; $('#busy').hidden = true; }
-}
-async function flashOnce() {
-  $('#busy').hidden = false;
-  const r = await api('/api/flash', { jobId:S.job.id, genId:S.gen.id, sizeIn:S.sizeIn, ...S.aiStyle });
-  await new Promise((res, rej) => { const im = new Image(); im.onload = () => { $('#stencil-img').src = im.src; res(); }; im.onerror = () => rej(new Error('Could not load the stencil image')); im.src = r.files.png; });
-  $('#dl-png').href = r.files.png; $('#dl-pdf').href = r.files.pdf;
-  const fit = r.fitScale < 0.995 ? `PDF is scaled to ${Math.round(r.fitScale * 100)}% to fit the page (the PNG is full size).` : `PDF prints at true size on US letter (${r.orientation}).`;
-  $('#info').innerHTML = `Stencil ${r.inches[0]} &times; ${r.inches[1]} in &middot; ink ${r.inkCoverage}% of the sheet &middot; ${fit}`;
-  say('Stencil ready. Adjust the black level, shading and marks below.', 'ok');
-}
-async function useAiResult(mode) {
-  $('#gen-img').src = S.gen.image; $('#gen-dl').href = S.gen.image; $('#ai-draw').hidden = false;
-  $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
-  const isStencil = mode === 'stencil';
-  $('#stencil-wrap').hidden = !isStencil; $('.dl-buttons').hidden = !isStencil; $('#info').hidden = !isStencil;
-  $('#post').hidden = true; $('#post-ai').hidden = !isStencil;
-  $('#gen-note').textContent = isStencil ? 'The stencil below is made from this drawing.' : 'Concept art. This is a picture, not a printable stencil.';
-  syncAiUI();
-  if (isStencil) await flashOnce(); else say('Concept art ready.', 'ok');
-}
-function showPreviews(images, mode) {
-  const grid = $('#preview-grid'); grid.innerHTML = '';
-  images.forEach(im => {
-    const cell = document.createElement('div');
-    cell.style.cssText = 'cursor:pointer;border:2px solid var(--border);border-radius:8px;overflow:hidden;background:#fff;transition:border-color .15s';
-    cell.innerHTML = `<img src="${im.url}" alt="Candidate ${im.index + 1}" style="width:100%;display:block;aspect-ratio:1;object-fit:contain">`;
-    cell.onmouseenter = () => cell.style.borderColor = 'var(--accent)'; cell.onmouseleave = () => cell.style.borderColor = 'var(--border)';
-    cell.onclick = async () => {
-      $$('#preview-grid > div').forEach(c => c.style.borderColor = 'var(--border)'); cell.style.borderColor = 'var(--accent)';
-      S.gen = { id: `${S.genGid}_${im.index}`, mode, image: im.url };
-      say('Candidate selected.', 'ok');
-      try { await useAiResult(mode); } catch (e) { say(e.message, 'error'); }
-    };
-    grid.appendChild(cell);
+    const btn=document.createElement('button');
+    btn.className='font-chip'+(f.name===S.selectedFont?' active':'');
+    btn.dataset.font=f.name; btn.dataset.cat=f.cat;
+    btn.style.fontFamily=`'${f.name}', serif`;
+    btn.textContent=f.name;
+    btn.addEventListener('click',()=>{
+      S.selectedFont=f.name;
+      qsa('#font-grid .font-chip').forEach(b=>b.classList.toggle('active',b.dataset.font===f.name));
+      previewText();
+    });
+    grid.appendChild(btn);
   });
-  $('#previews').hidden = false;
-  $('#placeholder').hidden = true; $('#result').hidden = false; S.hasStencil = true;
-  $('#ai-draw').hidden = true; $('#stencil-wrap').hidden = true; $('.dl-buttons').hidden = true; $('#info').hidden = true; $('#post').hidden = true; $('#post-ai').hidden = true;
 }
-async function runAI() {
-  await ensurePrepared();
-  const subj = (S.job.ai && S.job.ai.subject) || 'a person\'s face';
-  const prompt = $('#gen-prompt').value.replace(/\{subject\}/g, subj);
-  const negative = $('#gen-negative').value;
-  const mode = S.goal, a = S.aiSettings;
-  $('#previews').hidden = true;
-  bar(true); say('Starting the AI drawing…');
-  const st = await api('/api/gen/start', { jobId:S.job.id, mode, prompt, negative, base:a.base, lora:a.lora, loraWeight:a.loraWeight, guidance:a.guidance, scale:a.scale, steps:a.steps, count:a.count });
-  S.genGid = st.genId;
-  const t0 = Date.now(), total = Math.max(1, st.count || 1);
-  for (;;) {
-    await new Promise(r => setTimeout(r, 3000));
-    const d = await (await fetch('/api/gen/status/' + st.genId)).json();
-    if (d.status === 'error') throw new Error(d.error || 'The AI drawing failed');
-    if (d.status === 'none') throw new Error('The AI drawing was lost, please try again');
-    if (d.status === 'done') {
-      if (d.images) { showPreviews(d.images, mode); say(`${d.images.length} candidates ready — pick one below.`, 'ok'); return; }
-      S.gen = { id:st.genId, mode, image:d.image };
-      break;
+
+// ── Style chip bank (Tab 1) ───────────────────────────────────────────────────
+function initStyleChips(){
+  const bank=$('style-chip-bank');
+  if(!bank)return;
+  STYLE_CHIPS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='style-chip'; b.textContent=t; b.dataset.term=t;
+    b.addEventListener('click',()=>{
+      b.classList.toggle('active');
+      if(b.classList.contains('active'))S.activeChips.add(t); else S.activeChips.delete(t);
+    });
+    bank.appendChild(b);
+  });
+}
+// ── Text mode toggle (Tab 1) ──────────────────────────────────────────────────
+function initTextMode(){
+  qsa('.mode-row button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      S.textMode=b.dataset.mode;
+      qsa('.mode-row button').forEach(x=>x.classList.toggle('active',x.dataset.mode===S.textMode));
+      const aiOpts=$('txt-ai-opts');
+      if(aiOpts)aiOpts.style.display=S.textMode==='ai'?'':'none';
+    });
+  });
+}
+// ── Text preview ──────────────────────────────────────────────────────────────
+function previewText(){
+  const inp=$('txt-input'), prev=$('txt-preview');
+  if(!prev)return;
+  const txt=(inp?inp.value:'')||'Your Text';
+  prev.style.fontFamily=`'${S.selectedFont}', serif`;
+  prev.textContent=txt;
+}
+// ── Text stencil generation ───────────────────────────────────────────────────
+async function generateTextStencil(){
+  const txt=($('txt-input')||{}).value||'';
+  if(!txt.trim()){alert('Please enter some text first.');return;}
+  setBusy(true);
+  try{
+    if(S.textMode==='outline'){
+      const chipTerms=Array.from(S.activeChips).join(', ');
+      const r=await fetch('/api/text-stencil',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:txt,font:S.selectedFont,sizeIn:S.sizeIn,chips:chipTerms})});
+      if(!r.ok)throw new Error(await r.text());
+      const blob=await r.blob();
+      showStencilBlob(blob,'image/png');
+    } else {
+      // AI-stylized: build prompt and call gen pipeline
+      const chipTerms=Array.from(S.activeChips).join(', ');
+      const neg=getNolistNeg();
+      const posPrompt=`Tattoo lettering of the text "${txt}" in ${S.selectedFont} font style, ${chipTerms||'bold black outlines, thermal stencil ready'}, pure black on white background, razor-sharp`;
+      await startAIGen(posPrompt, neg||'color, grey tones, gradients, soft shading');
     }
-    say(`Drawing with AI… ${Math.round((Date.now() - t0) / 1000)} s of up to ~${total}min (the first run also loads the model)`);
-    if (Date.now() - t0 > (540000 + total * 90000)) throw new Error('The AI drawing took too long');
-  }
-  await useAiResult(mode);
+  }catch(e){console.error(e);showErr(e.message);}
+  finally{setBusy(false);}
 }
-$('#gen-again').onclick = async () => { const b = $('#gen-again'); b.disabled = true; try { await runAI(); } catch (e) { say(e.message, 'error'); } finally { b.disabled = false; bar(false); } };
-const _genClick = $('#gen-btn').onclick;
-$('#gen-btn').onclick = async () => {
-  if (S.method !== 'ai') { $('#previews').hidden = true; $('#ai-draw').hidden = true; $('#stencil-wrap').hidden = false; $('.dl-buttons').hidden = false; $('#info').hidden = false; $('#post-ai').hidden = true; $('#post').hidden = false; return _genClick(); }
-  const b = $('#gen-btn'); b.disabled = true;
-  try { await runAI(); } catch (e) { say(e.message, 'error'); } finally { b.disabled = false; bar(false); }
-};
+function showStencilBlob(blob,type){
+  const url=URL.createObjectURL(blob);
+  const img=qs('#stencil-out img')||document.createElement('img');
+  img.src=url; img.style.maxWidth='100%';
+  const out=$('stencil-out');
+  if(out){out.innerHTML='';out.appendChild(img);}
+  const prev=$('preview-wrap');
+  if(prev){prev.querySelector('img')?prev.querySelector('img').src=url:prev.insertAdjacentHTML('beforeend',`<img src="${url}" style="max-width:100%"`);}
+  S.hasStencil=true;
+  show($('dl-buttons'),true);
+}
+
+// ── Photo pipeline helpers ────────────────────────────────────────────────────
+let cropCanvas,cropCtx,cropImg=null,dragging=null,cropRect={x:0,y:0,w:1,h:1};
+function initInnerTabs(){
+  qsa('.inner-tabs button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const tab=b.dataset.tab;
+      qsa('.inner-tabs button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
+      qsa('.inner-pane').forEach(p=>p.classList.toggle('active',p.dataset.inner===tab));
+    });
+  });
+}
+function initDrop(){
+  const drop=$('drop-zone');
+  const fi=$('file-input');
+  if(!drop||!fi)return;
+  drop.addEventListener('click',()=>fi.click());
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');loadFile(e.dataTransfer.files[0]);});
+  fi.addEventListener('change',e=>loadFile(e.target.files[0]));
+}
+function loadFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    S.base=img; S.baseId++; S.prepCache=null; S.hasPhoto=true;
+    S.crop={x:0,y:0,w:1,h:1}; S.bright=0; S.contrast=0; S.auto=false;
+    renderCrop(); drawAdjust();
+    show($('editor'),true); show($('drop-zone'),false);
+    refreshAiPhotoState(); refreshSelectState();
+    // auto switch to photo tab
+    setMainTab('photo');
+  };
+  img.src=url;
+}
+function renderCrop(){
+  const canv=$('crop-canvas');
+  if(!canv||!S.base)return;
+  cropCanvas=canv; cropCtx=canv.getContext('2d');
+  const mw=canv.parentElement.clientWidth||400,mh=400;
+  const scale=Math.min(mw/S.base.width,mh/S.base.height,1);
+  canv.width=S.base.width*scale; canv.height=S.base.height*scale;
+  cropCtx.drawImage(S.base,0,0,canv.width,canv.height);
+  drawCropOverlay();
+}
+function drawCropOverlay(){
+  if(!cropCtx||!cropCanvas)return;
+  const {x,y,w,h}=S.crop;
+  const cw=cropCanvas.width,ch=cropCanvas.height;
+  cropCtx.clearRect(0,0,cw,ch);
+  if(S.base)cropCtx.drawImage(S.base,0,0,cw,ch);
+  cropCtx.fillStyle='rgba(0,0,0,0.45)';
+  cropCtx.fillRect(0,0,cw,ch);
+  cropCtx.clearRect(x*cw,y*ch,w*cw,h*ch);
+  cropCtx.strokeStyle='#00c8ff'; cropCtx.lineWidth=2;
+  cropCtx.strokeRect(x*cw,y*ch,w*cw,h*ch);
+}
+
+// ── Adjust sliders (Tab 2 inner) ──────────────────────────────────────────────
+function initAdjustSliders(){
+  [['bright',$('p-bright')],['contrast',$('p-contrast')]].forEach(([k,el])=>{
+    if(!el)return;
+    el.addEventListener('input',e=>{S[k]=+e.target.value;const o=$(el.id.replace('p-','v-'));if(o)o.textContent=e.target.value;drawAdjust();});
+  });
+  const autoChk=$('auto-enhance');
+  if(autoChk)autoChk.addEventListener('change',e=>{S.auto=e.target.checked;drawAdjust();});
+  // aspect ratio
+  qsa('#aspect-chips button').forEach(b=>b.addEventListener('click',()=>{
+    S.aspect=+b.dataset.a;
+    qsa('#aspect-chips button').forEach(x=>x.classList.toggle('active',x.dataset.a===b.dataset.a));
+  }));
+}
+function drawAdjust(){
+  const canv=$('adjust-canvas');
+  if(!canv||!S.base)return;
+  const ctx=canv.getContext('2d');
+  const mw=canv.parentElement.clientWidth||400,mh=400;
+  const scale=Math.min(mw/S.base.width,mh/S.base.height,1);
+  canv.width=S.base.width*scale; canv.height=S.base.height*scale;
+  ctx.filter=`brightness(${100+S.bright}%) contrast(${100+S.contrast}%)`;
+  ctx.drawImage(S.base,0,0,canv.width,canv.height);
+  ctx.filter='none';
+}
+// ── Style sliders ─────────────────────────────────────────────────────────────
+function initStyleSliders(){
+  const map={detail:'p-detail',cleanup:'p-cleanup',weightMm:'p-weightMm',varw:'p-varw',fills:'p-fills',shadows:'p-shadows',smooth:'p-smooth',texture:'p-texture',skin:'p-skin',stubble:'p-stubble',background:'p-background'};
+  Object.entries(map).forEach(([k,id])=>{
+    const el=$(id);if(!el)return;
+    el.addEventListener('input',e=>{
+      S.style[k]=+e.target.value; S.styleTouched=true;
+      const o=$(id.replace('p-','v-'));
+      if(o)o.textContent=k==='weightMm'?(+e.target.value).toFixed(2)+' mm':e.target.value;
+    });
+  });
+  const mirr=$('p-mirror');
+  if(mirr)mirr.addEventListener('change',e=>S.style.mirror=e.target.checked);
+  // preset chips
+  qsa('#preset-chips button').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));
+  // filter chips
+  qsa('#filter-chips button').forEach(b=>b.addEventListener('click',()=>applyFilter(b.dataset.filter)));
+}
+function applyPreset(name){
+  const vals=PRESETS[name];if(!vals)return;
+  PKEYS.forEach((k,i)=>{S.style[k]=vals[i];const el=$('p-'+k);if(el)el.value=vals[i];const o=$('v-'+k);if(o)o.textContent=vals[i];});
+  S.styleTouched=false;
+}
+function applyFilter(name){
+  const vals=FILTERS[name];if(!vals)return;
+  ['skin','smooth','texture'].forEach((k,i)=>{S.style[k]=vals[i];const el=$('p-'+k);if(el)el.value=vals[i];});
+}
+
+// ── Subject / selection tab ───────────────────────────────────────────────────
+function initSubject(){
+  const canv=$('select-canvas');
+  if(!canv)return;
+  canv.addEventListener('click',e=>{
+    if(!S.hasPhoto)return;
+    const r=canv.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+    if(S.mode==='pick'){S.points.push({x:px,y:py,t:1});drawSubjectPoints(canv);}
+    else{S.points.push({x:px,y:py,t:0});drawSubjectPoints(canv);}
+  });
+  qsa('[data-pick]').forEach(b=>b.addEventListener('click',()=>{S.mode=b.dataset.pick;qsa('[data-pick]').forEach(x=>x.classList.toggle('active',x.dataset.pick===S.mode));}));
+  const clrBtn=$('clear-points');if(clrBtn)clrBtn.addEventListener('click',()=>{S.points=[];drawSubjectPoints(canv);});
+  const applyBtn=$('apply-subject');if(applyBtn)applyBtn.addEventListener('click',applySubject);
+}
+function drawSubjectPoints(canv){
+  if(!S.base)return;
+  const ctx=canv.getContext('2d');
+  const scale=Math.min(canv.width/S.base.width,1);
+  ctx.clearRect(0,0,canv.width,canv.height);
+  ctx.drawImage(S.base,0,0,canv.width,canv.height);
+  S.points.forEach(p=>{
+    ctx.beginPath();ctx.arc(p.x*canv.width,p.y*canv.height,8,0,Math.PI*2);
+    ctx.fillStyle=p.t?'#00ff88':'#ff4444';ctx.fill();
+  });
+}
+async function applySubject(){
+  if(!S.hasPhoto||!S.points.length)return;
+  setBusy(true);
+  try{
+    const prepId=await ensurePrepared();
+    const r=await fetch('/api/subject',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:prepId,points:S.points})});
+    if(!r.ok)throw new Error(await r.text());
+    await triggerRender();
+  }catch(e){showErr(e.message);}
+  finally{setBusy(false);}
+}
+// ── AI settings (Tab 6 settings) ─────────────────────────────────────────────
+function initAISettings(){
+  const fields=['ai-base','ai-lora','ai-lora-weight','ai-cfg','ai-cn-scale','ai-steps','ai-count'];
+  // just wire UI — values sent at gen time
+  qsa('#tab-settings select, #tab-settings input[type=range]').forEach(el=>{
+    el.addEventListener('input',()=>{const o=$(el.id.replace(/-/g,'').slice(0,-0)+'_out');/* no-op: values read at gen time */});
+  });
+}
+function getAISettings(){
+  return {
+    model: ($('ai-base')||{}).value||'sdxl',
+    lora:  ($('ai-lora')||{}).value||'none',
+    loraWeight: +($('ai-lora-weight')||{}).value||0.7,
+    cfg:   +($('ai-cfg')||{}).value||7.5,
+    cnScale:+($('ai-cn-scale')||{}).value||0.75,
+    steps: +($('ai-steps')||{}).value||28,
+    count: +($('ai-count')||{}).value||2,
+  };
+}
+
+// ── Photo render pipeline ─────────────────────────────────────────────────────
+async function ensurePrepared(){
+  if(S.prepCache)return S.prepCache;
+  const canv=document.createElement('canvas');
+  const src=S.base; canv.width=src.width; canv.height=src.height;
+  const ctx=canv.getContext('2d');
+  ctx.filter=`brightness(${100+S.bright}%) contrast(${100+S.contrast}%)`;
+  ctx.drawImage(src,0,0);
+  const blob=await new Promise(res=>canv.toBlob(res,'image/jpeg',0.92));
+  const fd=new FormData(); fd.append('image',blob,'photo.jpg');
+  fd.append('crop',JSON.stringify(S.crop));
+  fd.append('aspect',S.aspect);
+  const r=await fetch('/api/prepare',{method:'POST',body:fd});
+  if(!r.ok)throw new Error(await r.text());
+  const d=await r.json();
+  S.prepCache=d.id; S.baseId=d.id;
+  return d.id;
+}
+async function triggerRender(){
+  const id=S.prepCache||S.baseId;
+  if(!id){showErr('No photo prepared yet');return;}
+  setBusy(true);
+  try{
+    const style={...S.style, sizeIn:S.sizeIn};
+    const r=await fetch('/api/render',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id,style})});
+    if(!r.ok)throw new Error(await r.text());
+    const blob=await r.blob();
+    showStencilBlob(blob,'image/png');
+  }catch(e){showErr(e.message);}
+  finally{setBusy(false);}
+}
+// ── AI generation ─────────────────────────────────────────────────────────────
+async function startAIGen(customPos,customNeg){
+  const id=await ensurePrepared();
+  const cfg=getAISettings();
+  let goal='stencil';
+  const goalEl=qs('.goal-chip.active');if(goalEl)goal=goalEl.dataset.goal;
+  const r=await fetch('/api/gen/start',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,goal,model:cfg.model,lora:cfg.lora,loraWeight:cfg.loraWeight,
+      cfg:cfg.cfg,cnScale:cfg.cnScale,steps:cfg.steps,count:cfg.count,
+      positive:customPos||undefined,negative:customNeg||undefined,sizeIn:S.sizeIn})});
+  if(!r.ok)throw new Error(await r.text());
+  const d=await r.json();
+  S.job=d.gid; pollGen(d.gid);
+}
+async function pollGen(gid){
+  const interval=setInterval(async()=>{
+    try{
+      const r=await fetch(`/api/gen/status/${gid}`);
+      if(!r.ok){clearInterval(interval);setBusy(false);return;}
+      const d=await r.json();
+      const bar=$('bar'); if(bar)bar.style.width=(d.progress||0)+'%';
+      if(d.done){
+        clearInterval(interval); setBusy(false);
+        loadPreviews(gid,d.count||1);
+      }
+    }catch(e){clearInterval(interval);setBusy(false);}
+  },1200);
+}
+function loadPreviews(gid,count){
+  const grid=$('preview-grid');if(!grid)return;
+  grid.innerHTML='';
+  for(let i=0;i<count;i++){
+    const img=document.createElement('img');
+    img.src=`/api/gen/image/${S.baseId||0}/${gid}?i=${i}&t=${Date.now()}`;
+    img.className='preview-thumb'; img.dataset.idx=i;
+    img.addEventListener('click',()=>selectPreview(img,gid,i));
+    grid.appendChild(img);
+  }
+  setMainTab('previews');
+}
+async function selectPreview(img,gid,idx){
+  qsa('.preview-thumb').forEach(x=>x.classList.remove('selected'));
+  img.classList.add('selected');
+  const prevImg=qs('#preview-wrap img')||document.createElement('img');
+  prevImg.src=img.src; prevImg.style.maxWidth='100%';
+  const pw=$('preview-wrap');if(pw){pw.innerHTML='';pw.appendChild(prevImg);}
+  S.hasStencil=true; show($('dl-buttons'),true);
+  setMainTab('select');
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function setBusy(on){
+  const btn=$('gen-btn'); if(btn){btn.disabled=on;btn.textContent=on?'Working…':'Generate';}
+  const bar=$('bar'); if(bar)bar.style.width=on?'0%':'';
+}
+function showErr(msg){
+  const el=$('err-msg');
+  if(el){el.textContent=msg;el.style.display='';setTimeout(()=>el.style.display='none',6000);}
+  else alert(msg);
+}
+// ── Download / export ─────────────────────────────────────────────────────────
+function initDownloads(){
+  const dlPng=$('dl-png'), dlPdf=$('dl-pdf');
+  if(dlPng)dlPng.addEventListener('click',()=>triggerDownload('png'));
+  if(dlPdf)dlPdf.addEventListener('click',()=>triggerDownload('pdf'));
+  const flashBtn=$('flash-btn');
+  if(flashBtn)flashBtn.addEventListener('click',flashPrint);
+}
+async function triggerDownload(fmt){
+  const id=S.prepCache||S.baseId;
+  const style={...S.style,sizeIn:S.sizeIn};
+  const r=await fetch('/api/render',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,style,fmt})});
+  if(!r.ok){showErr('Download failed');return;}
+  const blob=await r.blob();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`stencil.${fmt}`;
+  a.click();
+}
+async function flashPrint(){
+  const r=await fetch('/api/flash',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({sizeIn:S.sizeIn})});
+  if(!r.ok){showErr('Flash failed');return;}
+  const blob=await r.blob();
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url);if(win)win.print();
+}
+// ── AI tab prompt/goal chips ──────────────────────────────────────────────────
+function initAITab(){
+  qsa('.goal-chip').forEach(b=>b.addEventListener('click',()=>{
+    qsa('.goal-chip').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+}
+// ── Generate button (action-bar) ──────────────────────────────────────────────
+function initGenBtn(){
+  const btn=$('gen-btn');
+  if(!btn)return;
+  btn.addEventListener('click',async()=>{
+    // determine active main tab
+    const activeTab=qs('.main-tabs button.active');
+    const mtab=activeTab?activeTab.dataset.mtab:'photo';
+    if(mtab==='text'){
+      await generateTextStencil();
+    } else if(mtab==='ai'){
+      if(!S.hasPhoto){alert('Upload a photo first.');return;}
+      setBusy(true);
+      try{await startAIGen();}catch(e){showErr(e.message);}
+      finally{setBusy(false);}
+    } else {
+      // photo stencil (default)
+      if(!S.hasPhoto){alert('Upload a photo first.');return;}
+      await triggerRender();
+    }
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  initSizeControl();
+  initNolist();
+  initFontGrid();
+  initStyleChips();
+  initTextMode();
+  initInnerTabs();
+  initDrop();
+  initAdjustSliders();
+  initStyleSliders();
+  initSubject();
+  initAISettings();
+  initDownloads();
+  initAITab();
+  initGenBtn();
+  // wire main tabs
+  qsa('.main-tabs button').forEach(b=>{
+    b.addEventListener('click',()=>setMainTab(b.dataset.mtab));
+  });
+  // wire txt-input preview
+  const ti=$('txt-input');
+  if(ti)ti.addEventListener('input',previewText);
+  // wire reset-crop button
+  const rcBtn=$('reset-crop');
+  if(rcBtn)rcBtn.addEventListener('click',()=>{S.crop={x:0,y:0,w:1,h:1};drawCropOverlay();});
+  // default tab
+  setMainTab('text');
+  // hide editor, dl-buttons initially
+  show($('editor'),false);
+  show($('dl-buttons'),false);
+  // populate select-canvas when entering select tab
+  document.querySelectorAll('.main-tabs button').forEach(b=>{
+    if(b.dataset.mtab==='select') b.addEventListener('click',()=>{
+      const canv=$('select-canvas');
+      if(canv&&S.base){
+        canv.width=Math.min(400,S.base.width);
+        canv.height=Math.min(400,S.base.width)*S.base.height/S.base.width;
+        drawSubjectPoints(canv);
+      }
+    });
+  });
+  // previewText initial
+  previewText();
+  console.log('[tattooshop] init complete');
+});
 </script>
 </body>
 </html>

@@ -280,6 +280,23 @@ app.post('/api/flash', wrap(async (req, res) => {
   res.json({ success: true, jobId: id, files: { png: `/output/${base}.png`, pdf: `/output/${base}.pdf` }, ...r, png: undefined, pdf: undefined });
 }));
 
+// ─── text-to-stencil ────────────────────────────────────────────────────────
+app.post('/api/text-stencil', wrap(async (req, res) => {
+  const { text, font, sizeIn, chips } = req.body || {};
+  if (!text || !text.trim()) throw Object.assign(new Error('text required'), { status: 400 });
+  const n = ++renderN;
+  const base = `ts-${Date.now()}-${n}`;
+  const outPng = path.join(OUTPUT_DIR, base + '.png');
+  const r = await worker.call('text_stencil', {
+    text: String(text).slice(0, 200),
+    font: String(font || 'Arial'),
+    sizeIn: Math.min(14, Math.max(0.5, Number(sizeIn) || 5)),
+    chips: String(chips || ''),
+    outPng,
+  });
+  res.sendFile(outPng, e => e && !res.headersSent && res.sendStatus(500));
+}));
+
 app.use((err, _q, res, _n) => res.status(err.status || 400).json({ error: err.message }));
 
 // ─── housekeeping ───────────────────────────────────────────────────────────
