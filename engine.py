@@ -294,7 +294,7 @@ def line_art(rgb, model='contour-1024.onnx'):
 def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0, light=0, stubble=0):
     """Line drawing of the subject alone, run on a tight crop so it gets the model's full resolution."""
     box = padded_box(mask)
-    p = P(d, f'ink_s{ver}_{int(smooth)}_{int(texture)}_{int(skin)}_{int(light)}_{int(stubble)}.npy')
+    p = P(d, f'ink_s{ver}_{int(smooth)}_{int(texture)}_{int(skin)}_{int(light)}_{int(stubble)}_c1.npy')
     if os.path.exists(p):
         return np.load(p).astype(np.float32), box
     y0, y1, x0, x1 = box
@@ -309,7 +309,15 @@ def ink_subject(d, src, mask, ver, smooth=0, texture=0, skin=0, light=0, stubble
         comp = (rgb_c * alpha + 255 * (1 - alpha)).astype(np.uint8)
     else:
         comp = rgb_c
-    ink = line_art(prefilter(destubble(relight(comp, light), stubble), smooth, texture, skin))
+    prefilt = prefilter(destubble(relight(comp, light), stubble), smooth, texture, skin)
+    ink = line_art(prefilt)
+    # Canny supplement: catches subtle lip/skin-tone edges and thin metallic rings the ONNX model misses.
+    gray = cv2.cvtColor(prefilt, cv2.COLOR_RGB2GRAY)
+    lo, hi = max(10, int(np.percentile(gray, 20))), min(200, int(np.percentile(gray, 80)))
+    canny = cv2.Canny(gray, lo * 0.3, hi * 0.55)        # wide dynamic range to pick up both dark lines & bright metal
+    canny_f = cv2.GaussianBlur(canny.astype(np.float32) / 255.0, (0, 0), 0.6)
+    canny_r = cv2.resize(canny_f, (ink.shape[1], ink.shape[0]), interpolation=cv2.INTER_AREA)
+    ink = np.clip(ink + canny_r * 0.45, 0.0, 1.0)       # add 45% of Canny to ONNX; enough to lift lips above threshold
     np.save(p, ink.astype(np.float16))
     return ink, box
 
