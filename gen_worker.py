@@ -132,6 +132,7 @@ def cmd_generate_batch(dir, outs, prompt, negative, scale=0.75, steps=28, guidan
     seeds = seeds or [int(time.time()) % 2**31 + i for i in range(len(outs))]
     results = []
     for out, sd in zip(outs, seeds):
+        torch.cuda.empty_cache()                                           # free fragments before each candidate to avoid OOM
         gen = torch.Generator('cuda').manual_seed(int(sd))
         img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
                 guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]

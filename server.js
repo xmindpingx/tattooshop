@@ -170,7 +170,7 @@ class GenWorker {
     });
     this.proc.stderr.on('data', d => { const t = String(d); if (!/Warning|warn/i.test(t)) process.stderr.write('[gen] ' + t); });
     this.proc.on('exit', code => {
-      console.warn('[gen] exited', code); this.proc = null;
+      console.warn('[gen] exited', code); this.proc = null; this.busy = false;
       for (const [, p] of this.pending) p.reject(new Error('The image generator stopped, please try again'));
       this.pending.clear();
     });
