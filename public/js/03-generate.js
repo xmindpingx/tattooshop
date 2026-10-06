@@ -87,10 +87,8 @@ function doRender() {
       const orient = d.orientation || 'portrait';
       showToast(`Output: ${wi}" × ${hi}" — fits US Letter (${orient})`, 3500);
     }
-    const ppPhoto = document.getElementById('post-photo');
-    const ppAi = document.getElementById('post-ai-panel');
-    if (ppPhoto) ppPhoto.classList.add('visible');
-    if (ppAi) ppAi.classList.add('visible');
+    // Re-run setTab to ensure post-photo panel becomes visible now that we have a render
+    setTab('photo');
   })
   .catch(e => { S._rendering = false; hideOverlay(); showToast('Request failed: ' + e.message, 4000); });
 }
@@ -288,7 +286,7 @@ function doRelight() {
 }
 
 /* ── Candidates grid ───────────────────────────────────────────────── */
-function loadCandidates(jobId, images, autoSwitch) {
+function loadCandidates(genId, images, autoSwitch) {  // genId = 8-char hex generation ID
   const empty = document.getElementById('candidates-empty');
   const grid = document.getElementById('candidates-grid');
   if (!grid) return;

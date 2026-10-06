@@ -66,6 +66,13 @@ function setTab(tab) {
       _loadCrImg(S.currentBlob);
     } else { refreshCR(); }
   } else if (tab === 'room') { refreshCR(); }
+  // Show/hide post-process panels based on active tab:
+  //   post-photo  → only on photo tab (sliders only apply to photo render)
+  //   post-ai-panel → on ai and text tabs (both can trigger AI redraw)
+  const ppPhoto = document.getElementById('post-photo');
+  const ppAi    = document.getElementById('post-ai-panel');
+  if (ppPhoto) ppPhoto.classList.toggle('visible', tab === 'photo' && S.hasPhoto);
+  if (ppAi)    ppAi.classList.toggle('visible',    tab === 'ai' || tab === 'text');
   // Update Generate button label to reflect which action will fire
   const genBtn = document.getElementById('gen-btn');
   if (genBtn) {
