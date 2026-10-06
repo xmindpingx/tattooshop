@@ -5,9 +5,10 @@
 #
 #   aider --no-architect engine.py
 #   # or via task.sh:
-#   tools/aider/task.sh engine tools/aider/prompts/engine-bugfix.md --no-architect
+#   tools/aider/task.sh engine tools/aider/prompts/engine-bugfix.md
 #
 # With --no-architect, gemma4:12b must read CONVENTIONS.md + ARCHITECTURE.md + engine.py + the prompt
 # all in one 24,576-token context, leaving ~9-10k tokens of working room. Keep prompts SHORT (< 200 words).
 # The read-only rules below are loaded automatically via the .aider.conf.yml 'read:' list.
+#/no-architect
 /add engine.py

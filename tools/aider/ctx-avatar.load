@@ -1,0 +1,24 @@
+# Changing Room avatar drawing (public/js/05-avatar-draw.js, ~10k tokens).
+#
+# This file is in .aiderignore so it does NOT appear in the repo map.
+# You must /add it explicitly, and like engine.py it exceeds the editor model's 16k window.
+# Use --no-architect so gemma4:12b (24k window) edits directly:
+#
+#   aider --no-architect public/js/05-avatar-draw.js
+#   # or via task.sh:
+#   tools/aider/task.sh avatar tools/aider/prompts/bugfix.md
+#
+# With --no-architect, gemma4:12b reads CONVENTIONS.md + ARCHITECTURE.md + this file + the prompt
+# all in one 24,576-token context, leaving ~9-10k tokens of working room.  Keep prompts SHORT (< 200 words).
+# Always name the specific function in WHERE — the repo map won't show this file to the model.
+#
+# Key functions in 05-avatar-draw.js:
+#   drawAvatar(ctx, gender, area, skinHex)  — draws the body silhouette
+#   drawStencilOnAvatar()                   — composites the stencil onto the canvas at S.crX/Y/scale
+#   setCrArea(area)                         — updates S.crArea and redraws
+#   setCrGender(gender)                     — updates S.crGender and redraws
+#   toggleCrFullBody()                      — toggles the full-body vs zoomed view
+#
+# After editing: browser reload (public/ is served live).  No pm2 restart needed.
+#/no-architect
+/add public/js/05-avatar-draw.js

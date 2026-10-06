@@ -1,6 +1,6 @@
 # TattooShop — TODO List
 
-_Last updated: 2026-10-01_
+_Last updated: 2026-10-05_
 
 ## 🏗️ In Progress / Next Up
 
@@ -18,27 +18,11 @@ Original plan below, kept for reference; unchecked items were not individually r
 
 ### Thermal Printer No-List (shared across all tabs)
 - [x] Add a **"Thermal Printer Adherence"** collapsible panel or toggle — visible in Tab 1 and applied globally to every generation tab.
-- [ ] Panel explains why these terms hurt thermal printing: *"Thermal printers burn a single pass of black dots — they can't reproduce gradients, smooth tones, or mid-grays. These prompt terms create exactly that."*
-- [ ] Default state: **ON** (thermal-safe terms always active unless user unchecks).
-- [ ] The NO-LIST to enforce (pre-checked, user can uncheck individual items):
-  - `ambient light` — smooth diffuse fill across skin, no hard edges
-  - `global illumination` — baked lighting gradients incompatible with 2-tone output
-  - `soft shading` — muddy gray zones between light and dark
-  - `smooth gradients` — pure thermal-death: gradual tone ramps
-  - `diffuse lighting` — washes out hard ink edges
-  - `subsurface scattering` — gives skin a translucent glow, kills line crispness
-  - `rim glow` — soft halo around subject bleeds into white areas
-  - `bokeh` / `depth of field` — blurs background into gray noise
-  - `fog` / `haze` — mid-tone fill across background
-  - `noise` / `grain` — random dots that print as speckle bleed
-  - `halftone` / `stippling` / `crosshatching` — dot-pattern fills that thermally bleed together
-  - `watercolor wash` / `airbrush` — painterly soft-fill styles
-  - `soft focus` / `blurry` / `painterly` — destroys edge crispness
-  - `photorealistic skin texture` / `pores` / `freckles` / `wrinkles` — micro-texture fills that read as gray
-  - `color` / `grey tones` / `mid-tones` — anything not pure black or pure white
-  - `feathered edges` — anti-aliased soft transitions = gray band = thermal bleed
-- [ ] Active no-list terms auto-appended to the negative prompt for all generation calls.
-- [ ] Wire into `/api/gen/start` — server accepts and passes the `thermalNeg` list into the negative prompt.
+- [x] Panel explains why these terms hurt thermal printing: *"Thermal printers burn a single pass of black dots — they can't reproduce gradients, smooth tones, or mid-grays. These prompt terms create exactly that."*
+- [x] Default state: **ON** (thermal-safe terms always active unless user unchecks).
+- [x] The NO-LIST per-term checkboxes (all pre-checked), extra-terms free-text box. Done 2026-10-05.
+- [x] Active no-list terms auto-appended to the negative prompt for all generation calls. Done 2026-10-05.
+- [x] Wire into `/api/gen/start` — server accepts and passes the `nolist` param into the negative prompt. Done 2026-10-05.
 
 ### Realistic Tattoo-on-Body Preview
 - [ ] Separate tab: upload body-part photo, AI redraws it wearing the designed tattoo. Requires inpainting or IP-Adapter (depends on Tab 3).
@@ -70,6 +54,8 @@ Original plan below, kept for reference; unchecked items were not individually r
 - [x] AI Settings panel with tooltips
 - [x] Multi-candidate batch preview (1–4 candidates, clickable grid)
 - [x] Selected preview → flash/print export
+- [x] Thermal No-List panel — checkboxes, explanation text, extra-terms box, ON/OFF toggle, wired to `/api/gen/start`. Done 2026-10-05.
+- [x] `light` slider (0–50) wired to frontend and all three render calls. Done 2026-10-02.
 
 ### Shared Size Control (all tabs)
 - [ ] The existing size control (`sizeIn`, 0.5–14 inches, with cm display and quick-pick chips) currently lives only in Tab 2 (photo stencil). It must be promoted to a **global/shared component** visible and active across all tabs:
@@ -79,4 +65,4 @@ Original plan below, kept for reference; unchecked items were not individually r
   - Tab 4 (previews): display-only (shows what size the previews were generated at)
   - Tab 5 (selection): passes `sizeIn` to export/flash call
   - Tab 6 (settings): show current size as a reminder
-- [ ] Options: place size control in a persistent header/footer bar, OR duplicate the widget in each tab's form (simpler but less DRY).
+- [ ] Options: place size control in a persistent header/footer bar, OR duplicate the widget in each tab's form (simpler but less DRY)
