@@ -4,7 +4,11 @@ _Last updated: 2026-10-01_
 
 ## 🏗️ In Progress / Next Up
 
-### Tab Restructure (6-tab layout)
+### Tab Restructure — status checked against the code 2026-10-05
+Built: tab bar with Text, Photo, AI Redraw, Candidates, Changing Room, Settings. Text tab has outline/AI modes, font grid and style chips.
+Not built: true img2img / IP-Adapter pipeline (no references in `gen_worker.py` or `server.js`); a separate Selection tab (selection happens in Candidates).
+Original plan below, kept for reference; unchecked items were not individually re-verified.
+
 - [ ] **Tab 1 — Text-to-Stencil**: New landing tab. User types text, picks from curated Google Fonts subset (gothic, script, bold block, fineline), renders as clean outline OR AI-stylized lettering (both modes, user picks per design). Includes **Thermal Printer No-List panel** (see below). Export via existing PDF/PNG 300 DPI pipeline.
 - [ ] **Tab 2 — Photo Stencil**: Move existing full photo-upload workflow here (crop/adjust, trace-photo vs AI-redraw, all sliders, prompt editor, multi-candidate previews).
 - [ ] **Tab 3 — img2img / IP-Adapter**: True img2img pipeline (denoising-strength on actual photo, not ControlNet txt2img). Optional IP-Adapter style-transfer unit (~2.4–3.5 GB CLIP encoder + ~670 MB adapter weights — NOT yet downloaded).
@@ -13,7 +17,7 @@ _Last updated: 2026-10-01_
 - [ ] **Tab 6 — Settings**: Promote existing AI settings collapsible (base model, LoRA, weights, CFG, steps, ControlNet scale, candidate count) into a dedicated persistent tab.
 
 ### Thermal Printer No-List (shared across all tabs)
-- [ ] Add a **"Thermal Printer Adherence"** collapsible panel or toggle — visible in Tab 1 and applied globally to every generation tab.
+- [x] Add a **"Thermal Printer Adherence"** collapsible panel or toggle — visible in Tab 1 and applied globally to every generation tab.
 - [ ] Panel explains why these terms hurt thermal printing: *"Thermal printers burn a single pass of black dots — they can't reproduce gradients, smooth tones, or mid-grays. These prompt terms create exactly that."*
 - [ ] Default state: **ON** (thermal-safe terms always active unless user unchecks).
 - [ ] The NO-LIST to enforce (pre-checked, user can uncheck individual items):
