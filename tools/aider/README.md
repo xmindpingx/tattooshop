@@ -3,11 +3,15 @@
 ## Start it
 - Desktop icon **Aider Projects**, then **9) tattooshop** (the launcher finds `~/bin/aider-tattooshop` by itself).
 - Or run `~/bin/aider-tattooshop` or `./start_aider.sh` in this folder.
-- The extra-parameters box (or the command line) accepts any aider flag, plus `--branch` (work on a new `aider/<timestamp>` git branch).
-  Useful: `--no-architect` (gemma4:12b edits directly with its 24k window), `--model ollama_chat/gemma4:e4b` (smaller architect).
+- The extra-parameters box (or the command line) accepts any aider flag, plus:
+  - `--branch` — work on a new `aider/<timestamp>` git branch
+  - `--flash` — use `gemini-2.5-flash` as architect instead of `gemini-2.5-pro` (faster, cheaper)
+  - `--no-architect` — gemini-2.5-pro edits directly (needed for large files; see below)
+  - `--model ollama_chat/gemma4:12b` — fall back to local Ollama architect if Gemini is unavailable
 
-The script checks Ollama and the models, loads both models into VRAM so they stay resident together, starts aider with this
-folder's `.aider.conf.yml`, and unloads the models when you quit.
+The script sources `~/.aider-secrets` for the `GEMINI_API_KEY`, loads the editor model into VRAM,
+starts aider with this folder's `.aider.conf.yml`, and unloads models when you quit.
+For local Ollama architects it also pre-warms the model; for Gemini it skips that step.
 
 ## Use it
 1. `/load tools/aider/ctx-<name>.load` puts the right small set of files in the chat (list below).
@@ -32,7 +36,7 @@ folder's `.aider.conf.yml`, and unloads the models when you quit.
 
 ## Editing engine.py (--no-architect)
 `engine.py` is ~12k tokens. With the rules and the editor's own prompt, it exceeds the 7B editor's 16k window.
-Always edit it without architect mode so gemma4:12b (24k window) edits directly:
+Always edit it without architect mode so the architect edits directly (Gemini has a much larger window):
 
 ```bash
 aider --no-architect engine.py
@@ -41,7 +45,7 @@ tools/aider/task.sh engine tools/aider/prompts/engine-bugfix.md
 # task.sh detects the '#/no-architect' line in ctx-engine.load and adds the flag automatically
 ```
 
-Use `tools/aider/prompts/engine-bugfix.md` as the prompt template (shorter than bugfix.md — the 24k window fills up fast).
+Use `tools/aider/prompts/engine-bugfix.md` as the prompt template.
 
 ## Editing 05-avatar-draw.js (--no-architect)
 `public/js/05-avatar-draw.js` is ~10k tokens and is in `.aiderignore` (the repo map won't include it).
@@ -70,20 +74,21 @@ Presets with `#/no-architect` in their .load file automatically run with `--no-a
   architect's plan as its message (checked in aider's source). So `CONVENTIONS.md` + `ARCHITECTURE.md` (1,329 tokens together) are kept short, and a prompt
   that touches several files must stay under what 16,384 tokens can hold.
 - With both models loaded, VRAM was at 16.72 of 17.16 GB, so the contexts in `~/.aider.model.settings.yml` cannot grow and are left alone.
-- `.aider.model.settings.yml` in this folder overrides the architect for this project only, with `think: false`. With thinking on, gemma4:12b used its whole
-  4,096-token output budget on self-checks and returned an empty plan. Raising the budget to 8,192 did not help: it used all 8.2k tokens and again returned
-  an empty answer (tested on the same prompt). Observed downside of thinking off: for a two-part bug, the plan covered only the first part and wrongly said the
-  second part was already handled. Giving each requirement its own prompt worked: the route and the `.catch` guard for `/api/gen/cancel` were two prompts of
-  about 1 minute each, and both edits were correct. Always read the diff against your list.
+- The default architect is now `gemini/gemini-2.5-pro` (cloud API, no VRAM, larger context than local Ollama).
+  The editor is still `ollama_chat/qwen2.5-coder:7b-instruct` on the local GPU.
+  Use `--flash` for faster/cheaper edits; use `--model ollama_chat/gemma4:12b` to go fully local.
+- `.aider.model.settings.yml` in this folder sets `think: false` for gemma4:12b. For Gemini this setting is ignored.
 
 ## Things that go wrong
 - Aider asks "Add X to the chat?" when the plan mentions a file that is not in the chat. In one test with `--yes-always` that auto-yes re-ran the architect, its
   next reply was no longer a plan, and nothing was edited. Answer `n` unless the plan really needs the file, then `/add` it yourself and ask again.
-- The app itself uses gemma4:12b for photo analysis, and an AI redraw unloads it. Using the app while aider is open makes the next aider turn reload the model.
+- The app itself uses gemma4:12b for photo analysis, and an AI redraw unloads it. Using the app while aider is open and `--model ollama_chat/gemma4:12b` is set
+  makes the next aider turn reload the model (not an issue when using Gemini as architect).
 - `public/` is served live from this working tree, so switching git branches changes the live page.
 - With `--no-architect`, if the edit doesn't apply, check the log for "did not conform" — the model's diff syntax was off. Retry with a shorter prompt or edit by hand.
 - `05-avatar-draw.js` is in `.aiderignore` — if aider says it can't find the file, you must `/add public/js/05-avatar-draw.js` manually (or use `ctx-avatar.load`
   which does this). The file won't appear in the repo map even after `/add`.
+- Gemini rate-limit errors (429): wait ~60s or switch to `--flash` for the session.
 
 ## When the app changes
 Keep `ARCHITECTURE.md` true (route list, file roles, API fields, flags). Aider is told to trust the code over it, but a stale file wastes tokens in both models.
