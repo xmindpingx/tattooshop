@@ -108,6 +108,20 @@ function syncAiUi() {
   // Sync model and lora selects explicitly (they use IDs, not data-ai)
   setAiModel(S.aiModel);
   onLoraChange(S.aiLora);
+  // Sync AI-tab range sliders (they have no data-ai attrs, so update by id)
+  const sliderMap = {
+    'sl-cn':    { val: Math.round(S.aiCnScale * 100),  disp: 'sv-cn',    fmt: v => (v/100).toFixed(2) },
+    'sl-cfg':   { val: S.aiCfg,                        disp: 'sv-cfg',   fmt: v => v },
+    'sl-steps': { val: S.aiSteps,                      disp: 'sv-steps', fmt: v => v },
+    'sl-loraw': { val: Math.round(S.aiLoraW * 100),    disp: 'sv-loraw', fmt: v => (v/100).toFixed(2) },
+    'sl-count': { val: S.aiCount,                      disp: 'sv-count', fmt: v => v },
+  };
+  Object.entries(sliderMap).forEach(([id, cfg]) => {
+    const sl = document.getElementById(id);
+    if (sl) sl.value = cfg.val;
+    const sv = document.getElementById(cfg.disp);
+    if (sv) sv.textContent = cfg.fmt(cfg.val);
+  });
 }
 
 function onTextInput() {}

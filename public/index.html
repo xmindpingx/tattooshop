@@ -191,7 +191,7 @@
 
     <!-- ── TAB: PHOTO ── -->
     <div class="tab-pane" data-tab="photo">
-      <div id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondrop="onDrop(event)">
+      <div id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
         <div class="icon">📷</div>
         <p>Click or drag & drop a photo</p>
         <input type="file" id="file-input" accept="image/*" style="display:none" onchange="onFileSelect(event)">

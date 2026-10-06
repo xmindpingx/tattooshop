@@ -99,8 +99,8 @@ function init() {
   setTextMode('outline');
   // Sync AI settings UI to S defaults (keeps Settings tab in sync with state)
   syncAiUi();
-  // Default variation count = 2 so candidates tab always populates
-  setVarCount(2);
+  // Default variation count = 1
+  setVarCount(1);
   // Nolist badge color
   const badge = document.getElementById('nolist-badge');
   if (badge) badge.style.color = 'var(--green)';
@@ -116,7 +116,7 @@ function init() {
     });
   });
   // Drop zone
-  const dz = document.getElementById('drop-zone');
+  const dz = document.getElementById('upload-zone');
   if (dz) {
     dz.addEventListener('dragover', onDragOver);
     dz.addEventListener('dragleave', onDragLeave);
