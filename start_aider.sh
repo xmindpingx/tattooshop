@@ -101,4 +101,4 @@ trap cleanup EXIT
 
 # ---- run aider (models, edit formats and context limits come from ~/.aider.* files) ----
 say "starting aider in $PROJECT"
-aider "${ARGS[@]}"
+aider --read /home/dad/AAAaiderstacks/PORTS.md "${ARGS[@]}"
