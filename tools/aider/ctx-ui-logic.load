@@ -1,8 +1,12 @@
 # Page state, tab switching, UI builders, sliders, presets (~2.6k tokens together).
-# 01-state.js: setTab(tab), setInner(scope, inner), setTextMode(mode),
+# 01-state.js: setTab(tab), setInner(scope, inner),
+#              setTextMode(mode) — also clears S.hasTextJob when mode='outline',
 #              setGoal(goal) — syncs both #goal-toggle AND #text-goal-toggle
 # 02-builders.js: buildFontGrid, selectFont, buildChips, toggleChip, syncPromptFromChips,
-#                 updateAi, setVarCount (syncs vc-N AND tvc-N buttons), onLoraChange,
-#                 syncAiUi, onSlider, applyPhotoPreset
+#                 updateAi, setVarCount (syncs vc-N AND tvc-N buttons),
+#                 setAiModel(val) — syncs sel-model + cfg-model and S.aiModel,
+#                 onLoraChange(val) — syncs sel-lora + cfg-lora and S.aiLora,
+#                 syncAiUi() — calls setAiModel + onLoraChange + data-ai elements,
+#                 onSlider, applyPhotoPreset
 # After editing: browser reload (public/ is served live).  No pm2 restart needed.
 /add public/js/01-state.js public/js/02-builders.js
