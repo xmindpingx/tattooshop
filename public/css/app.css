@@ -160,3 +160,5 @@ header .spacer{flex:1}
 .nolist-why { font-size:.75rem; color:var(--muted); margin:0 0 6px; }
 #nolist-terms { display:flex; flex-wrap:wrap; gap:4px 12px; margin-bottom:6px; }
 .nolist-term { font-size:.75rem; cursor:pointer; white-space:nowrap; }
+
+.font-cat-label{grid-column:1/-1;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 2px}

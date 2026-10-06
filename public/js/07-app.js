@@ -34,6 +34,8 @@ function handlePhotoFile(file) {
     setTab('photo');
     const ph = document.getElementById('preview-placeholder');
     if (ph) ph.style.display = 'none';
+    const pc = document.getElementById('photo-controls');
+    if (pc) pc.style.display = '';  // reveal Crop & Adjust / Subject panes
     showToast('Photo uploaded — adjust and Generate!', 2500);
   })
   .catch(e => { S._uploading = false; hideOverlay(); showToast('Upload failed: ' + e.message, 4000); });

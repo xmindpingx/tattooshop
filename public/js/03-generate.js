@@ -98,6 +98,7 @@ function doRender() {
 /* ── AI redraw ─────────────────────────────────────────────────────── */
 function doAiRedraw() {
   if (S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
+  if (S._textRendering) { showToast('Text render in progress — wait for it to finish.', 2500); return; }
   if (!S.hasStencil && !S.hasPhoto && !S.hasTextJob) { showToast('Generate or upload a stencil first.', 2500); return; }
   // Text-tab AI runs use the text job dir; everything else uses the photo job dir,
   // which is kept in S.photoJobId so a later text job can't hijack a photo redraw.
