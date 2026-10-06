@@ -27,6 +27,7 @@ function handlePhotoFile(file) {
     S.hasPhoto = true;
     S.hasTextJob = false;  // new photo clears any pending text-job context
     S.jobId = d.jobId;
+    S.photoJobId = d.jobId;  // remembered separately so a later text-job can't orphan the photo session
     // Show the overlay/preview returned by prepare
     const previewUrl = d.overlay || d.url || d.previewUrl;
     if (previewUrl) showStencil(previewUrl);

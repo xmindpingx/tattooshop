@@ -65,11 +65,12 @@ function doTextStencil() {
 function doRender() {
   if (S._rendering || S._textRendering || S.genJobId) { showToast('Already rendering — wait for it to finish.', 2500); return; }
   if (!S.hasPhoto) { showToast('Upload a photo first.', 2500); return; }
+  const jid = S.photoJobId || S.jobId;  // photo job dir (S.jobId may point at a text job)
+  if (!jid) { showToast('Session lost — re-upload the photo.', 3000); return; }
   S._rendering = true;
   showOverlay('Rendering stencil…', 10);
-  if (!S.jobId) { hideOverlay(); S._rendering = false; showToast('Session lost — re-upload the photo.', 3000); return; }
   const body = {
-    jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
+    jobId: jid, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
     smooth: S.smooth, texture: S.texture, skin: S.skin,
     fills: S.fills, shadows: S.shadows, stubble: S.stubble, light: S.light
   };
@@ -98,7 +99,10 @@ function doRender() {
 function doAiRedraw() {
   if (S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
   if (!S.hasStencil && !S.hasPhoto && !S.hasTextJob) { showToast('Generate or upload a stencil first.', 2500); return; }
-  if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
+  // Text-tab AI runs use the text job dir; everything else uses the photo job dir,
+  // which is kept in S.photoJobId so a later text job can't hijack a photo redraw.
+  const jid = S.hasTextJob ? S.jobId : (S.photoJobId || S.jobId);
+  if (!jid) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
   // Merge prompts from both text-tab and AI-tab fields: whichever has content wins;
   // text-tab fields take priority when both are filled (user is working in the Text tab).
   const textPos = (document.getElementById('text-prompt-pos')?.value || '').trim();
@@ -110,7 +114,7 @@ function doAiRedraw() {
   const nolist = S.nolistOn ? nolistValue() : '';
   showOverlay('AI Redraw starting…', 5);
   const body = {
-    jobId: S.jobId, prompt, negative, nolist,
+    jobId: jid, prompt, negative, nolist,
     base: S.aiModel, lora: S.aiLora, loraWeight: S.aiLoraW,
     guidance: S.aiCfg, scale: S.aiCnScale, steps: S.aiSteps, count: S.aiCount,
     goal: S.aiGoal, sizeIn: S.sizeIn
@@ -179,6 +183,12 @@ function pollJob(id) {
           S.genJobId = null;
           hideOverlay();
           showToast('Error: ' + (d.error || 'Generation failed'), 5000);
+        } else if (d.status === 'none') {
+          // Server no longer knows this job (restart mid-generation) — don't spin until the 8-min timeout
+          clearInterval(interval);
+          S.genJobId = null;
+          hideOverlay();
+          showToast('Generation job was lost — the server may have restarted. Please run AI Redraw again.', 5000);
         }
       })
       .catch(() => {
@@ -240,15 +250,16 @@ function doExport(type) {
 
 function doFlash() {
   if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
-  if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
-  // Derive genId from the current blob URL: /api/gen/image/<jobId>/<genId>
-  const m = S.currentBlob && S.currentBlob.match(/\/api\/gen\/image\/[^/]+\/([0-9a-f]{8}(?:_\d+)?)$/);
+  // Derive jobId AND genId from the current image URL: /api/gen/image/<jobId>/<genId>
+  // The URL's jobId is authoritative — a selected candidate may belong to an earlier
+  // job (photo re-uploaded or text job created since), in which case S.jobId is wrong.
+  const m = S.currentBlob && S.currentBlob.match(/\/api\/gen\/image\/([^/]+)\/([0-9a-f]{8}(?:_\d+)?)$/);
   if (!m) { showToast('Flash Stencil requires an AI-generated image — run AI Redraw first, then select a candidate.', 3500); return; }
-  const genId = m[1];
+  const jobId = m[1], genId = m[2];
   S._rendering = true;
   showOverlay('Converting flash to stencil…', 20);
   fetch('/api/flash', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ jobId: S.jobId, genId, sizeIn: S.sizeIn }) })
+    body: JSON.stringify({ jobId, genId, sizeIn: S.sizeIn }) })
   .then(r => r.json())
   .then(d => {
     S._rendering = false; hideOverlay();
@@ -261,13 +272,14 @@ function doFlash() {
 
 function doDestubble() {
   if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
-  if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
+  const jid = S.photoJobId || S.jobId;
+  if (!jid) { showToast('Upload a photo first.', 2500); return; }
   S._rendering = true;
   showOverlay('Removing stubble…', 30);
   fetch('/api/render', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-      jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
+      jobId: jid, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
       smooth: S.smooth, texture: S.texture, skin: S.skin,
       fills: S.fills, shadows: S.shadows, stubble: 0, light: S.light
     })
@@ -290,13 +302,14 @@ function doDestubble() {
 
 function doRelight() {
   if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
-  if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
+  const jid = S.photoJobId || S.jobId;
+  if (!jid) { showToast('Upload a photo first.', 2500); return; }
   S._rendering = true;
   showOverlay('Relighting…', 30);
   fetch('/api/render', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-      jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
+      jobId: jid, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
       smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows,
       stubble: S.stubble, light: Math.max(S.light, 30)
     })
