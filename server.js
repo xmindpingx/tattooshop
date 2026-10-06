@@ -264,6 +264,17 @@ app.post('/api/gen/start', wrap(async (req, res) => {
 
 app.get('/api/gen/status/:gid', (req, res) => res.json(genJobs.get(req.params.gid) || { status: 'none' }));
 
+app.post('/api/gen/cancel/:gid', wrap(async (req, res) => {
+  const gid = req.params.gid;
+  const job = genJobs.get(gid);
+  if (job && job.status === 'running') {
+    job.status = 'cancelled';
+    gen.stop();
+    gen.busy = false;
+  }
+  res.json({ ok: true });
+}));
+
 app.get('/api/gen/image/:id/:gid', (req, res) => {
   if (!UUID_RE.test(req.params.id) || !/^[0-9a-f]{8}(_[0-9]+)?$/.test(req.params.gid)) return res.sendStatus(404);
   res.sendFile(path.join(jobDir(req.params.id), `gen_${req.params.gid}.png`), e => e && !res.headersSent && res.sendStatus(404));
