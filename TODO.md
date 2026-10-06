@@ -58,11 +58,4 @@ Original plan below, kept for reference; unchecked items were not individually r
 - [x] `light` slider (0–50) wired to frontend and all three render calls. Done 2026-10-02.
 
 ### Shared Size Control (all tabs)
-- [ ] The existing size control (`sizeIn`, 0.5–14 inches, with cm display and quick-pick chips) currently lives only in Tab 2 (photo stencil). It must be promoted to a **global/shared component** visible and active across all tabs:
-  - Tab 1 (text-to-stencil): sets output size of the text art stencil
-  - Tab 2 (photo stencil): already wired — keep as-is
-  - Tab 3 (img2img): sets resolution target for AI generation
-  - Tab 4 (previews): display-only (shows what size the previews were generated at)
-  - Tab 5 (selection): passes `sizeIn` to export/flash call
-  - Tab 6 (settings): show current size as a reminder
-- [ ] Options: place size control in a persistent header/footer bar, OR duplicate the widget in each tab's form (simpler but less DRY)
+- [x] Size control (`sizeIn`, 0.5–14 inches, quick-pick chips) is in `controls-section` below all tabs — already global and wired to all generate calls. Size+Generate row hidden on non-generate tabs (previews/room/settings) via `setTab()`. Done 2026-10-05.

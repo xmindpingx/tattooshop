@@ -53,6 +53,9 @@ function setTab(tab) {
   });
   const nl = document.getElementById('nolist-wrap');
   if (nl) nl.style.display = (tab === 'text' || tab === 'ai') ? '' : 'none';
+  const sgRow = document.getElementById('size-gen-row');
+  const genTabs = ['text', 'photo', 'ai'];
+  if (sgRow) sgRow.style.display = genTabs.includes(tab) ? '' : 'none';
   if (tab === 'room' && S.hasStencil && !_crShowStencil) {
     _crShowStencil = true;
     const btn = document.getElementById('btn-cr-toggle');
