@@ -340,6 +340,13 @@ function cleanup() {
       fs.stat(fp, (_e2, st) => { if (st && now - st.mtimeMs > age) fs.rm(fp, { recursive: true, force: true }, () => {}); });
     }));
   }
+  // Prune in-memory job maps to prevent unbounded growth (running jobs kept via started; completed jobs pruned every cleanup cycle)
+  for (const [gid, job] of genJobs) {
+    const terminal = job.status === 'done' || job.status === 'error' || job.status === 'cancelled';
+    const stale = job.started && (now - job.started > 6 * 3600e3);
+    if (terminal || stale) genJobs.delete(gid);
+  }
+  for (const [id, job] of aiJobs) { if (job.status !== 'pending') aiJobs.delete(id); } // prune completed ai analyses
 }
 setInterval(cleanup, 20 * 60 * 1000); cleanup();
 
