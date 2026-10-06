@@ -1,0 +1,13 @@
+# CPU stencil pipeline (engine.py, ~12k tokens).
+#
+# engine.py is larger than the editor model's 16k window, so the ARCHITECT MODEL CANNOT BE USED here.
+# Run aider with --no-architect so gemma4:12b (24k window) edits directly:
+#
+#   aider --no-architect engine.py
+#   # or via task.sh:
+#   tools/aider/task.sh engine tools/aider/prompts/engine-bugfix.md --no-architect
+#
+# With --no-architect, gemma4:12b must read CONVENTIONS.md + ARCHITECTURE.md + engine.py + the prompt
+# all in one 24,576-token context, leaving ~9-10k tokens of working room. Keep prompts SHORT (< 200 words).
+# The read-only rules below are loaded automatically via the .aider.conf.yml 'read:' list.
+/add engine.py

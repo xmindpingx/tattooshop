@@ -17,6 +17,7 @@ You maintain a small production web app that is live right now. ARCHITECTURE.md 
 - Request functions follow one pattern: return early if the in-flight flag is set, set it, clear it on success AND error.
 - server.js: wrap async routes with `wrap()`, clamp inputs with `rng`/`numIn`/`clip`, answer errors as `{error}` with a status code.
 - Python: `engine.cmd_*` receive keyword args from server.js. A new command also needs a server.js route that calls `worker.call('<name>', {...})`.
+- engine.py is ~12k tokens — it exceeds the editor model's window. If you are asked to edit it, say: "engine.py requires --no-architect mode; run: aider --no-architect engine.py" and stop. Do not attempt the edit in architect mode.
 
 ## When you finish
 1. Say in one line what changed and how the user can see it.

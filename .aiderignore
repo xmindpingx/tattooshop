@@ -8,5 +8,12 @@ public/fonts/
 
 # ~10k tokens of canvas drawing code (one function). Larger than what the 16k-token editor model can
 # take together with the rules, so editing it through aider produces garbage. To work on it anyway,
-# delete this line and use --no-architect so the 24k-token model edits directly.
+# delete this line and use --no-architect so the 24k-token model edits directly:
+#   aider --no-architect public/js/05-avatar-draw.js
 public/js/05-avatar-draw.js
+
+# engine.py (~12k tokens) is NOT ignored — it is tracked and included in the repo map so aider
+# knows what functions exist. But it is too large for architect mode. Always edit it with:
+#   aider --no-architect engine.py
+#   (or: tools/aider/task.sh engine tools/aider/prompts/engine-bugfix.md --no-architect)
+# See tools/aider/ctx-engine.load for the full explanation.

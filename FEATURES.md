@@ -1,6 +1,6 @@
 # TattooShop — Features Roadmap
 
-_Last updated: 2026-10-01_
+_Last updated: 2026-10-05_
 
 ## 🗺️ Planned Features (Priority Order)
 
@@ -99,15 +99,14 @@ Clickable chip bank — add to positive prompt for thermal-safe output.
 
 ---
 
-### P2 — Thermal Printer No-List (shared across all tabs)
-Collapsible panel in Tab 1, applied globally.
+### ✅ P2 — Thermal Printer No-List (SHIPPED 2026-10-05)
+Collapsible panel, applied globally to all generation calls.
 - Default: **ON** — all terms active.
-- User can uncheck individual items.
-- Active terms auto-appended to negative prompt on every generation call.
-- Server: `/api/gen/start` accepts `thermalNeg[]` array, merges into negative prompt.
-
-**Full no-list:**
-`ambient light, global illumination, soft shading, smooth gradients, diffuse lighting, subsurface scattering, rim glow, bokeh, depth of field, lens flare, fog, haze, noise, grain, halftone, stippling, crosshatching, watercolor wash, airbrush, soft focus, blurry, painterly, photorealistic skin texture, pores, freckles, wrinkles, color, grey tones, mid-tones, feathered edges, shadows without hard edges`
+- Per-term checkboxes (user can uncheck individual items).
+- Extra terms text area for custom additions.
+- ON/OFF master toggle.
+- Active terms sent as `nolist` to `/api/gen/start`, appended to negative prompt.
+- Explanation text (panel built; prose copy still TODO).
 
 ---
 
@@ -118,6 +117,8 @@ Collapsible panel in Tab 1, applied globally.
 4. Previews Room (shared — populates from whichever tab last generated)
 5. Selection / Results (shared — pick winner from any tab, send to export)
 6. Settings (existing AI settings panel, promoted to tab)
+
+Also: promote the existing size control from Tab 2 to a global persistent header bar.
 
 ### P4 — Tab 3: img2img + IP-Adapter
 - True denoising-strength img2img on actual photo (not ControlNet txt2img)
@@ -139,13 +140,20 @@ Collapsible panel in Tab 1, applied globally.
 - Cybergothic LoRA (Civitai, ~218 MB) — same
 
 ### P8 — UX Polish
-- PDF export: show user final printed size
 - Juggernaut vs sdxl quality side-by-side comparison
 - Design LoRA (Tattoo_gen) quality review on real face photo
 
 ---
 
-## ✅ Shipped This Session
+## ✅ Shipped This Session (2026-10-05)
+- Thermal Printer No-List panel: per-term checkboxes, extra-terms box, ON/OFF toggle, wired to `/api/gen/start`
+- `light` slider (0–50) wired end-to-end: UI → state → doRender/doDestubble/doRelight → server.js → engine.py `relight()`
+- PDF size toast: doRender() shows printed dimensions from `d.inches[]`
+- `PROTECT` lowered 30→25 for better piercing/jewelry protection
+- Fills/shadows percentile tuning: reduced over-darkening
+- Aider integration: ctx presets, task.sh, prompts, ctx-engine.load with --no-architect support
+
+## ✅ Shipped Earlier
 - Multi-model base selection (sdxl / juggernaut)
 - Multi-LoRA selection (tattoo / design) with trigger-word auto-prepend
 - Editable prompt + negative prompt with server-side templates

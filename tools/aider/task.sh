@@ -1,12 +1,14 @@
 #!/bin/bash
 # One-shot, non-interactive aider run for a single small task.
 #   tools/aider/task.sh <preset> <prompt-file> [extra aider args]
-# <preset> is the name in tools/aider/ctx-<preset>.load (server, generate, ui-logic, css, markup, ...).
-# The preset's "/add" files become editable files, "/read-only" files become read-only; then the prompt
-# file is sent as the one message. Work happens on a new branch aider/task-<time>, then tools/check.sh runs.
+# <preset> is the name in tools/aider/ctx-<preset>.load (server, generate, ui-logic, css, markup, engine, ...).
+# The preset's "/add" files become editable files, "/read-only" files become read-only; a "#/no-architect" line
+# in the preset forces --no-architect (required for engine.py which exceeds the editor model's 16k window);
+# then the prompt file is sent as the one message. Work happens on a new branch aider/task-<time>, then
+# tools/check.sh runs.
 # Write ONE requirement per prompt file, in the BUG / WHERE / EXPECTED / CONSTRAINTS / DONE WHEN form
-# (see tools/aider/prompts/bugfix.md). Mention no file paths in the prompt: with --yes-always aider would
-# auto-add any file the plan mentions, which derails the small editor model.
+# (see tools/aider/prompts/bugfix.md or engine-bugfix.md for Python). Mention no file paths in the prompt:
+# with --yes-always aider would auto-add any file the plan mentions, which derails the small editor model.
 set -u
 cd "$(dirname "$0")/../.." || exit 1
 PRESET="${1:-}"; PROMPT="${2:-}"; [ $# -ge 2 ] && shift 2
@@ -17,10 +19,12 @@ VENV=/home/dad/ai-stacks/stacks/venvLM
 . "$VENV/bin/activate"
 pgrep -f '[a]ider ' >/dev/null && echo "note: another aider process is running (VRAM is shared)" >&2
 FILES=()
+NO_ARCHITECT=false
 while read -r cmd arg; do
   case "$cmd" in
-    /add)       FILES+=("$arg") ;;
-    /read-only) FILES+=(--read "$arg") ;;
+    /add)          FILES+=("$arg") ;;
+    /read-only)    FILES+=(--read "$arg") ;;
+    '#/no-architect') NO_ARCHITECT=true ;;
   esac
 done < "$LOAD"
 [ ${#FILES[@]} -gt 0 ] || { echo "preset $PRESET has no /add lines"; exit 2; }
@@ -28,7 +32,9 @@ BR="aider/task-$(date +%Y%m%d-%H%M%S)"
 git checkout -q -b "$BR" || exit 1
 LOG="/tmp/aider-task-$(date +%H%M%S).log"
 echo "branch $BR, log $LOG"
-timeout 900 aider "${FILES[@]}" --yes-always --no-pretty --no-stream --message-file "$PROMPT" "$@" > "$LOG" 2>&1
+ARCH_FLAG=()
+$NO_ARCHITECT && ARCH_FLAG=(--no-architect) && echo "note: --no-architect (gemma4:12b edits directly, 24k window)"
+timeout 900 aider "${ARCH_FLAG[@]}" "${FILES[@]}" --yes-always --no-pretty --no-stream --message-file "$PROMPT" "$@" > "$LOG" 2>&1
 RC=$?
 echo "aider exit $RC"
 N=$(git rev-list --count main.."$BR")
