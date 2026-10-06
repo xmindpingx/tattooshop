@@ -109,7 +109,8 @@ app.post('/api/prepare', upload.single('photo'), wrap(async (req, res) => {
   const id = req.jobId, t0 = Date.now();
   const buf = fs.readFileSync(req.file.path);
   aiJobs.set(id, { status: 'pending', ai: null });
-  analyze(buf).then(ai => { aiJobs.set(id, { status: 'done', ai }); console.log(`[job ${id}] ai=${ai ? ai.subject : 'n/a'} ${Date.now() - t0}ms`); });   // runs in the background
+  analyze(buf).then(ai => { aiJobs.set(id, { status: 'done', ai }); console.log(`[job ${id}] ai=${ai ? ai.subject : 'n/a'} ${Date.now() - t0}ms`); })
+    .catch(e => { aiJobs.set(id, { status: 'done', ai: null }); console.warn(`[job ${id}] analyze threw unexpectedly:`, e.message); });   // .catch prevents unhandled rejection if analyze() throws outside its own try/catch
   const prep = await worker.call('prepare', { dir: jobDir(id) });
   console.log(`[job ${id}] prepared ${prep.width}x${prep.height} subject=${prep.coverage} ${Date.now() - t0}ms`);
   res.json({ jobId: id, ...prep, overlay: `/api/overlay/${id}?v=${prep.ver}`, ai: null });
