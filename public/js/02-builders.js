@@ -76,15 +76,32 @@ function setVarCount(n) {
   }
 }
 
+// Sync model select across AI tab (sel-model) and Settings tab (cfg-model)
+function setAiModel(val) {
+  S.aiModel = val;
+  ['sel-model', 'cfg-model'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== val) el.value = val;
+  });
+}
+
+// Sync lora select across AI tab (sel-lora) and Settings tab (cfg-lora)
 function onLoraChange(val) {
   S.aiLora = val;
-  document.querySelectorAll('[data-ai="lora"]').forEach(x => { if (x !== event.target) x.value = val; });
+  ['sel-lora', 'cfg-lora'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== val) el.value = val;
+  });
 }
 
 function syncAiUi() {
-  ['aiModel','aiLora','aiLoraW','aiCfg','aiCnScale','aiSteps','aiCount'].forEach(k => {
+  // Sync numeric/range inputs via data-ai attributes
+  ['aiLoraW','aiCfg','aiCnScale','aiSteps'].forEach(k => {
     document.querySelectorAll(`[data-ai="${k}"]`).forEach(el => { el.value = S[k]; });
   });
+  // Sync model and lora selects explicitly (they use IDs, not data-ai)
+  setAiModel(S.aiModel);
+  onLoraChange(S.aiLora);
 }
 
 function onTextInput() {}
@@ -116,4 +133,3 @@ function applyPhotoPreset(name) {
   });
   if (S.hasPhoto) doRender();
 }
-

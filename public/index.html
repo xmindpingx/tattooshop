@@ -252,7 +252,7 @@
     <div class="tab-pane" data-tab="ai">
       <p class="sec">Base Model</p>
       <div class="row">
-        <select id="sel-model" onchange="S.aiModel=this.value">
+        <select id="sel-model" onchange="setAiModel(this.value)">
           <option value="sdxl">SDXL Base</option>
           <option value="juggernaut">Juggernaut XL v9</option>
         </select>
@@ -357,7 +357,7 @@
       <div class="settings-grid">
         <div class="setting-row">
           <label>Base Model</label>
-          <select id="cfg-model" onchange="S.aiModel=this.value">
+          <select id="cfg-model" onchange="setAiModel(this.value)">
             <option value="sdxl">SDXL Base</option>
             <option value="juggernaut">Juggernaut XL v9</option>
           </select>
