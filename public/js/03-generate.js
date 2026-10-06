@@ -56,6 +56,7 @@ function doTextStencil() {
     hideOverlay();
     const url = URL.createObjectURL(blob);
     showStencil(url);
+    setTab('text');  // ensure export row and post-stencil controls become visible
   })
   .catch(e => { S._textRendering = false; hideOverlay(); showToast('Error: ' + e.message, 4000); });
 }
@@ -121,7 +122,7 @@ function doAiRedraw() {
     S.genJobId = d.genId;
     pollJob(d.genId);
   })
-  .catch(e => { hideOverlay(); showToast('Request failed: ' + e.message, 4000); });
+  .catch(e => { S._textRendering = false; hideOverlay(); showToast('Request failed: ' + e.message, 4000); });
 }
 
 /* ── Job polling ───────────────────────────────────────────────────── */
@@ -252,7 +253,7 @@ function doFlash() {
   .then(d => {
     S._rendering = false; hideOverlay();
     const url = d.files?.png || d.url;
-    if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; }
+    if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; setTab('ai'); }
     else showToast(d.error || 'Flash conversion failed', 4000);
   })
   .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });

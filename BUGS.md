@@ -11,6 +11,12 @@ _Last updated: 2026-10-06 (session 4)_
 ### Trace / Stencil Pipeline
 - [ ] **Shadow side artifacts at extreme stubble near piercings**: PROTECT lowered to 25 (from 30), dilation halo widened (0.009 ref), drop_small tightened (0.003 → 0.004 ref). Improved but not eliminated at stubble=65 with strong directional light. Workaround: stubble ≤ 60 avoids it in practice. If still seen: try `PROTECT=20` but watch for tattoo ink getting smoothed.
 
+## ✅ Fixed Session 5 (2026-10-06)
+
+- [x] **Text outline stencil result invisible after generation**: `doTextStencil()` in outline mode called `showStencil(url)` but never called `setTab('text')`, so the export row and post-stencil controls remained hidden. User saw a blank screen after generating text stencil. Fixed: added `setTab('text')` after `showStencil()` in `public/js/03-generate.js`.
+- [x] **Flash stencil result invisible after conversion**: `doFlash()` called `showStencil(url)` on success but never called `setTab('ai')`, so the post-AI controls (export, re-run) remained hidden. Fixed: added `setTab('ai')` in the success branch of `doFlash()` in `public/js/03-generate.js`.
+- [x] **Text-rendering guard stuck after failed AI redraw**: `doTextStencil()` sets `S._textRendering = true` then calls `doAiRedraw()`. If the `/api/gen/start` fetch failed, `doAiRedraw()`'s `.catch` handler didn't clear `S._textRendering`, leaving all generation buttons permanently blocked for the session. Fixed: added `S._textRendering = false` in `doAiRedraw()` `.catch` in `public/js/03-generate.js`.
+
 ## ✅ Fixed Session 4 (2026-10-06)
 
 - [x] **Photo tab inner-nav (Crop & Adjust / Subject) completely broken**: `setInner()` queries `.inner-nav[data-scope]` and `.inner-pane[data-scope]`, but the Photo tab's `inner-nav` had no `data-scope` attribute, and the pane `data-inner` values used a `photo-` prefix that `setInner` didn't include. Clicking the sub-tabs did nothing. Fixed: added `data-scope="photo"` to inner-nav, corrected pane `data-inner` values to `adjust`/`subject` to match what `setInner` passes. Fixed in `public/index.html`.
