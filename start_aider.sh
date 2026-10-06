@@ -67,7 +67,10 @@ dirty=$(git status --short 2>/dev/null | grep -v '^??' | wc -l)
 if pgrep -f "gen_worker.py" >/dev/null 2>&1; then
   warn "gen_worker.py (the app's SDXL image generator) is running and holds VRAM. It exits by itself ~8 min after the last AI redraw; until then the aider models will not both fit."
 fi
-if command -v rocm-smi >/dev/null 2>&1; then
+# (skipped when both models are already loaded, e.g. by another aider session: that VRAM is ours)
+ps_now=$(ollama ps 2>/dev/null | awk 'NR>1{print $1}' | tr '\n' ' ')
+ALREADY=0; case "$ps_now" in *"$A_NAME"*) case "$ps_now" in *"$E_NAME"*) ALREADY=1 ;; esac ;; esac
+if [ "$ALREADY" = 0 ] && command -v rocm-smi >/dev/null 2>&1; then
   used=$(rocm-smi --showmeminfo vram 2>/dev/null | grep "Used" | grep -oE "[0-9]+$")
   if [ -n "$used" ] && [ "$used" -gt $((2200*1048576)) ]; then
     warn "$((used/1048576)) MiB of VRAM is already in use by something else."

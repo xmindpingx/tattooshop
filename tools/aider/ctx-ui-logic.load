@@ -1,0 +1,2 @@
+# Page state, tab switching, UI builders, sliders, presets (~2.4k tokens together).
+/add public/js/01-state.js public/js/02-builders.js

@@ -1,0 +1,19 @@
+# Project override of ~/.aider.model.settings.yml for the architect model, for THIS project only.
+# An entry here replaces the global entry of the same name completely, so it repeats every field.
+# Only the editor-side values the global file measured are kept; the single change is think: false.
+#
+# Why: measured on 2026-10-05 with a server.js bug-fix prompt (14k tokens sent): with thinking on,
+# gemma4:12b spent the whole num_predict budget (4096 tokens, ~2 min at ~35 tok/s) on self-checks
+# ("Wait, I should check if `res` is available...") and was cut off mid-sentence. The ANSWER section
+# was empty, so no plan reached the editor and nothing was edited.
+- name: ollama_chat/gemma4:12b
+  edit_format: diff
+  use_repo_map: true
+  editor_model_name: ollama_chat/qwen2.5-coder:7b-instruct
+  editor_edit_format: editor-diff
+  extra_params:
+    num_ctx: 24576        # must stay equal to the global value and to start_aider.sh (else Ollama reloads)
+    num_predict: 4096
+    temperature: 0.2
+    keep_alive: 30m
+    think: false

@@ -1,0 +1,2 @@
+# SDXL / ControlNet / LoRA GPU worker (gen_worker.py, ~3.1k tokens).
+/add gen_worker.py

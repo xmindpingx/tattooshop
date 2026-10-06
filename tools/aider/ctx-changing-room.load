@@ -1,0 +1,2 @@
+# Changing Room preview controls (~2.5k tokens together). The avatar drawing itself (05-avatar-draw.js) is excluded on purpose.
+/add public/js/04-changing-room-state.js public/js/06-changing-room.js

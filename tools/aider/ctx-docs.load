@@ -1,0 +1,2 @@
+# Open items, read-only (these are NOT loaded by default because they cost tokens in both models).
+/read-only BUGS.md TODO.md

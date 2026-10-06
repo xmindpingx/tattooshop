@@ -1,0 +1,2 @@
+# Generate / render / AI redraw / polling / export / candidates / upload / overlay / cancel (~4.3k tokens together).
+/add public/js/03-generate.js public/js/07-app.js
