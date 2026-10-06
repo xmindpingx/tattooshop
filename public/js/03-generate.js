@@ -100,11 +100,14 @@ function doAiRedraw() {
   if (S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
   if (!S.hasStencil && !S.hasPhoto && !S.hasTextJob) { showToast('Generate or upload a stencil first.', 2500); return; }
   if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
-  // For text-AI jobs, prefer the text-tab prompt fields; fall back to the AI-tab fields
-  const promptId  = S.hasTextJob ? 'text-prompt-pos' : 'prompt-pos';
-  const negId     = S.hasTextJob ? 'text-prompt-neg' : 'prompt-neg';
-  const prompt   = (document.getElementById(promptId)?.value  || document.getElementById('prompt-pos')?.value  || '').trim();
-  const negative = (document.getElementById(negId)?.value     || document.getElementById('prompt-neg')?.value  || '').trim();
+  // Merge prompts from both text-tab and AI-tab fields: whichever has content wins;
+  // text-tab fields take priority when both are filled (user is working in the Text tab).
+  const textPos = (document.getElementById('text-prompt-pos')?.value || '').trim();
+  const textNeg = (document.getElementById('text-prompt-neg')?.value || '').trim();
+  const aiPos   = (document.getElementById('prompt-pos')?.value      || '').trim();
+  const aiNeg   = (document.getElementById('prompt-neg')?.value      || '').trim();
+  const prompt   = (S.hasTextJob && textPos) ? textPos : (aiPos || textPos);
+  const negative = (S.hasTextJob && textNeg) ? textNeg : (aiNeg || textNeg);
   const nolist = S.nolistOn ? nolistValue() : '';
   showOverlay('AI Redraw starting…', 5);
   const body = {
@@ -257,8 +260,9 @@ function loadCandidates(jobId, images, autoSwitch) {
 
 function selectCandidate(url) {
   showStencil(url);
-  setTab('text');
-  showToast('Candidate selected — ready to export!', 2500);
+  // Go to AI tab so user can re-run or export; text-job users can go back to text manually
+  setTab('ai');
+  showToast('Candidate selected — ready to export or re-run!', 2500);
   document.querySelectorAll('.cand-thumb').forEach(t => {
     t.classList.toggle('selected', t.dataset.url === url);
   });

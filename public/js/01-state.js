@@ -88,6 +88,9 @@ function setTextMode(mode) {
   });
   const aiExtra = document.getElementById('text-ai-extra');
   if (aiExtra) aiExtra.style.display = mode === 'ai' ? '' : 'none';
+  // Clear text-job flag when switching back to outline so AI Redraw
+  // doesn't accidentally use text-tab prompts on a plain photo job
+  if (mode === 'outline') S.hasTextJob = false;
 }
 
 function setGoal(goal) {

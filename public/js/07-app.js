@@ -25,6 +25,7 @@ function handlePhotoFile(file) {
     hideOverlay();
     if (d.error) { showToast('Upload error: ' + d.error, 4000); return; }
     S.hasPhoto = true;
+    S.hasTextJob = false;  // new photo clears any pending text-job context
     S.jobId = d.jobId;
     // Show the overlay/preview returned by prepare
     const previewUrl = d.overlay || d.url || d.previewUrl;
