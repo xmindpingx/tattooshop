@@ -66,6 +66,12 @@ function setTab(tab) {
       _loadCrImg(S.currentBlob);
     } else { refreshCR(); }
   } else if (tab === 'room') { refreshCR(); }
+  // Update Generate button label to reflect which action will fire
+  const genBtn = document.getElementById('gen-btn');
+  if (genBtn) {
+    const labels = { text:'✏ Generate Stencil', photo:'↺ Render Stencil', ai:'✨ AI Redraw' };
+    genBtn.textContent = labels[tab] || 'Generate →';
+  }
 }
 
 function setInner(scope, inner) {
