@@ -23,15 +23,15 @@ For local Ollama architects it also pre-warms the model; for Gemini it skips tha
 
 | Preset | Files | Tokens (aider's counter) | Notes |
 |---|---|---|---|
-| ctx-markup | public/index.html | ~6.5k | |
+| ctx-markup | public/index.html | ~7k | Text tab: Outline + AI Stylized modes; #text-ai-extra panel |
 | ctx-css | public/css/app.css | ~2.9k | |
-| ctx-ui-logic | 01-state.js, 02-builders.js | ~2.4k | |
-| ctx-generate | 03-generate.js, 07-app.js | ~4.3k | |
+| ctx-ui-logic | 01-state.js, 02-builders.js | ~2.6k | setGoal syncs both goal toggles; setVarCount syncs vc-N + tvc-N |
+| ctx-generate | 03-generate.js, 07-app.js | ~4.5k | doAiRedraw reads text-prompt-pos/neg when S.hasTextJob |
 | ctx-changing-room | 04-changing-room-state.js, 06-changing-room.js | ~2.5k | |
 | ctx-avatar | public/js/05-avatar-draw.js | ~10k | **--no-architect required** — see below; file is in .aiderignore |
-| ctx-server | server.js | ~5.8k | |
-| ctx-gpu | gen_worker.py | ~3.1k | |
-| ctx-engine | engine.py | ~12k | **--no-architect required** — see below |
+| ctx-server | server.js | ~6k | /api/text-job, /api/text-stencil, /api/gen/start, /api/prepare |
+| ctx-gpu | gen_worker.py | ~3.2k | control_image() checks stencil.png first (text-AI shortcut) |
+| ctx-engine | engine.py | ~12k | **--no-architect required** — see below; cmd_text_job, cmd_text_stencil |
 | ctx-docs | BUGS.md, TODO.md (read-only) | ~2k | |
 
 ## Editing engine.py (--no-architect)

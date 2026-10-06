@@ -16,9 +16,11 @@ set -uo pipefail
 source ~/.aider-secrets 2>/dev/null || true
 
 PROJECT=/home/dad/www/tattooshop
-VENV=/home/dad/ai-stacks/stacks/venvLM
+VENV=/data/venvs/aider   # venvs consolidated 2026-10-05 (old venvLM path is a symlink here)
 OLLAMA=http://127.0.0.1:11434
 ARCHITECT=gemini/gemini-2.5-pro
+OWN_ARCHITECT=ollama_chat/gemma4:12b  # local fallback when GPU is free
+
 EDITOR_MODEL=ollama_chat/qwen2.5-coder:7b-instruct
 # must match num_ctx in ~/.aider.model.settings.yml (a different num_ctx forces a reload)
 ARCHITECT_CTX=24576
@@ -27,6 +29,7 @@ KEEP_ALIVE=30m
 
 say()  { printf '\033[1;34m[start_aider]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[start_aider] WARNING:\033[0m %s\n' "$*"; }
+shout(){ printf '\033[1;41;37m[start_aider] %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m[start_aider] ERROR:\033[0m %s\n' "$*"; exit 1; }
 
 # our own flag: --branch (everything else goes to aider); --model X changes which architect is pre-warmed
@@ -43,6 +46,38 @@ for ((i=0; i<${#ARGS[@]}; i++)); do
 done
 A_NAME=${ARCHITECT#*/}; E_NAME=${EDITOR_MODEL#*/}   # strip the ollama_chat/ prefix
 is_local() { [[ "$1" == ollama_chat/* ]] || [[ "$1" == ollama/* ]]; }
+# Auto-fallback: if Gemini Pro quota is exhausted, switch to Flash automatically
+if [[ "$ARCHITECT" == gemini/gemini-2.5-pro ]]; then
+  _qcheck=$(curl -s --max-time 10 \
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"contents":[{"parts":[{"text":"hi"}]}]}' 2>&1)
+  if echo "$_qcheck" | grep -qiE 'RESOURCE_EXHAUSTED|"code"[[:space:]]*:[[:space:]]*429|quota'; then
+    warn "Gemini Pro quota exhausted — auto-switching to gemini/gemini-2.5-flash"
+    ARCHITECT=gemini/gemini-2.5-flash
+  fi
+  unset _qcheck
+fi
+# GPU-dynamic selection: if GPU is free, prefer the project's own local model.
+# Gemini Pro is used only when GPU VRAM is occupied by something else.
+# (Skip if user explicitly passed --flash or --model <something-else>)
+if [[ "$ARCHITECT" == gemini/gemini-2.5-pro ]]; then
+  _vram_used=$(rocm-smi --showmeminfo vram 2>/dev/null | grep -i "used" | grep -oE "[0-9]+$" | head -1)
+  if [ -n "$_vram_used" ] && [ "$_vram_used" -lt $((2000*1048576)) ]; then
+    say "GPU is free ($((_vram_used/1048576)) MiB used) → local architect: ${OWN_ARCHITECT#*/}"
+    say "  Gemini available in-session: /ask gemini/gemini-2.5-pro \"your question\""
+    ARCHITECT="$OWN_ARCHITECT"
+  else
+    if [ -n "${_vram_used:-}" ]; then
+      say "GPU busy ($((_vram_used/1048576)) MiB used) → Gemini Pro architect (no VRAM needed)"
+    else
+      say "GPU info unavailable → using Gemini Pro architect"
+    fi
+  fi
+  unset _vram_used
+fi
+# Re-derive model names after all architect-selection logic
+A_NAME=${ARCHITECT#*/}; E_NAME=${EDITOR_MODEL#*/}
 
 cd "$PROJECT" || die "cannot cd to $PROJECT"
 [ -f "$VENV/bin/activate" ] || die "venv not found at $VENV"
@@ -107,12 +142,33 @@ case "$resident" in
 esac
 say "note: the app itself uses $A_NAME for photo analysis (default context) and unloads it when an AI redraw starts; if you use the app while aider is open, the next aider turn reloads the model (a few seconds)."
 
+START_SHA=$(git rev-parse HEAD 2>/dev/null || echo "")
+
 cleanup() {
+  local rc=$?
   say "unloading models to free VRAM ..."
   if is_local "$ARCHITECT"; then
-    curl -s --max-time 30 "$OLLAMA/api/generate" -d "{\"model\":\"$A_NAME\",\"keep_alive\":0}" >/dev/null
+    curl -s --max-time 30 "$OLLAMA/api/generate" -d "{\"model\":\"$A_NAME\",\"keep_alive\":0}" >/dev/null 2>&1
   fi
-  curl -s --max-time 30 "$OLLAMA/api/generate" -d "{\"model\":\"$E_NAME\",\"keep_alive\":0}" >/dev/null
+  curl -s --max-time 30 "$OLLAMA/api/generate" -d "{\"model\":\"$E_NAME\",\"keep_alive\":0}" >/dev/null 2>&1
+
+  local end_sha changed dirty
+  end_sha=$(git rev-parse HEAD 2>/dev/null || echo "")
+  changed=""
+  if [ -n "$START_SHA" ] && [ -n "$end_sha" ] && [ "$end_sha" != "$START_SHA" ]; then
+    changed=$(git diff --name-only "$START_SHA" "$end_sha" -- . ':!tests' 2>/dev/null)
+  fi
+  dirty=$(git status --porcelain 2>/dev/null)
+  if [ -n "$changed" ] || [ -n "$dirty" ]; then
+    echo
+    shout "FILES CHANGED THIS SESSION — remember to deploy:"
+    { [ -n "$changed" ] && echo "$changed"; [ -n "$dirty" ] && echo "$dirty" | awk '{print $2}'; } \
+      | sort -u | sed 's/^/    /'
+    shout "JS/server changes: pm2 restart tattooshop && pm2 logs tattooshop --lines 20"
+    [ -n "$dirty" ] && warn "uncommitted changes — review with 'git diff' first."
+  else
+    say "no files changed this session."
+  fi
 }
 trap cleanup EXIT
 

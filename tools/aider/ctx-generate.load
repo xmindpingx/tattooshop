@@ -1,6 +1,10 @@
-# Generate / render / AI redraw / polling / export / candidates / nolist (~4.3k tokens together).
-# 03-generate.js: doTextStencil, doRender, doAiRedraw, pollJob, showStencil, doExport, loadCandidates,
-#                 toggleNolist, buildNolist, nolistValue, onSizeChange, setSizeChip
-# 07-app.js: init, setTab, onSlider, updateAi, syncAiUi, setVarCount, setGoal, onLoraChange, cancelGen
+# Generate / render / AI redraw / polling / export / candidates / nolist (~4.5k tokens together).
+# 03-generate.js: onGenerate, doTextStencil (outline + AI modes, calls /api/text-job then doAiRedraw),
+#                 doRender, doAiRedraw (reads text-prompt-pos/neg when S.hasTextJob is set), pollJob,
+#                 showStencil, doExport, loadCandidates, toggleNolist, buildNolist, nolistValue,
+#                 onSizeChange, setSizeChip
+# 07-app.js: handlePhotoFile, showOverlay/hideOverlay/cancelGen, showToast, init,
+#            drag-drop handlers (onDragOver, onDragLeave, onDrop, onFileSelect)
+# NOTE: setVarCount, setGoal, onLoraChange, syncAiUi are in 02-builders.js / 01-state.js, NOT here.
 # Together these two files stay under 8k tokens — safe to edit together in architect mode.
 /add public/js/03-generate.js public/js/07-app.js

@@ -1,2 +1,5 @@
-# Page markup (public/index.html, ~6.5k tokens). Use it alone, or with one small js file at most.
+# Page markup (public/index.html, ~7k tokens). Use it alone, or with one small js file at most.
+# Text tab has two modes: "Outline Only" / "AI Stylized" (id=text-mode-toggle).
+# #text-ai-extra (hidden by default, shown by setTextMode('ai')): goal toggle, pos/neg prompts,
+# variation count — all using the same S.* state and setGoal/setVarCount helpers as the AI tab.
 /add public/index.html
