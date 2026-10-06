@@ -18,6 +18,7 @@ You maintain a small production web app that is live right now. ARCHITECTURE.md 
 - server.js: wrap async routes with `wrap()`, clamp inputs with `rng`/`numIn`/`clip`, answer errors as `{error}` with a status code.
 - Python: `engine.cmd_*` receive keyword args from server.js. A new command also needs a server.js route that calls `worker.call('<name>', {...})`.
 - engine.py is ~12k tokens — it exceeds the editor model's window. If you are asked to edit it, say: "engine.py requires --no-architect mode; run: aider --no-architect engine.py" and stop. Do not attempt the edit in architect mode.
+- public/js/05-avatar-draw.js is ~10k tokens and is in .aiderignore (not in the repo map). If you are asked to edit it, say: "05-avatar-draw.js requires --no-architect mode and an explicit /add; run: aider --no-architect public/js/05-avatar-draw.js" and stop. Do not attempt the edit in architect mode.
 
 ## When you finish
 1. Say in one line what changed and how the user can see it.
