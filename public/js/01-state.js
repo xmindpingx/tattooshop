@@ -92,8 +92,10 @@ function setTextMode(mode) {
 
 function setGoal(goal) {
   S.aiGoal = goal;
-  document.querySelectorAll('#goal-toggle button').forEach(b => {
-    b.classList.toggle('active', b.dataset.goal === goal);
+  ['#goal-toggle', '#text-goal-toggle'].forEach(sel => {
+    document.querySelectorAll(sel + ' button').forEach(b => {
+      b.classList.toggle('active', b.dataset.goal === goal);
+    });
   });
 }
 

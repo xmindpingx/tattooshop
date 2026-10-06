@@ -71,6 +71,8 @@ function setVarCount(n) {
   for (let i = 1; i <= 4; i++) {
     const b = document.getElementById('vc-' + i);
     if (b) b.classList.toggle('on', i === n);
+    const tb = document.getElementById('tvc-' + i);
+    if (tb) tb.classList.toggle('on', i === n);
   }
 }
 

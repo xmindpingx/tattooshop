@@ -159,6 +159,29 @@
         <button data-mode="ai" onclick="setTextMode('ai')">AI Stylized</button>
       </div>
 
+      <!-- ── AI-only options (shown when mode = AI Stylized) ── -->
+      <div id="text-ai-extra" style="display:none">
+        <p class="sec" style="margin-top:10px">Goal</p>
+        <div class="mode-toggle" id="text-goal-toggle">
+          <button data-goal="stencil" class="active" onclick="setGoal('stencil')">Thermal Stencil</button>
+          <button data-goal="lineart" onclick="setGoal('lineart')">Fine Line Art</button>
+          <button data-goal="flash" onclick="setGoal('flash')">Flash Style</button>
+        </div>
+
+        <p class="sec" style="margin-top:10px">Positive Prompt</p>
+        <textarea id="text-prompt-pos" rows="3" style="width:100%" placeholder="AI prompt…" oninput="S.promptPos=this.value"></textarea>
+        <p class="sec">Negative Prompt</p>
+        <textarea id="text-prompt-neg" rows="2" style="width:100%" placeholder="Negative prompt…" oninput="S.promptNeg=this.value"></textarea>
+
+        <div class="row" style="margin-top:8px;align-items:center;gap:10px">
+          <span style="font-size:.75rem;color:var(--muted)">Variations:</span>
+          <button class="chip" onclick="setVarCount(1)" id="tvc-1">1</button>
+          <button class="chip" onclick="setVarCount(2)" id="tvc-2">2</button>
+          <button class="chip" onclick="setVarCount(3)" id="tvc-3">3</button>
+          <button class="chip" onclick="setVarCount(4)" id="tvc-4">4</button>
+        </div>
+      </div>
+
       <p class="sec">Font Style</p>
       <div class="font-grid" id="font-grid"></div>
 

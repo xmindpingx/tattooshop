@@ -100,8 +100,11 @@ function doAiRedraw() {
   if (S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
   if (!S.hasStencil && !S.hasPhoto && !S.hasTextJob) { showToast('Generate or upload a stencil first.', 2500); return; }
   if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
-  const prompt = (document.getElementById('prompt-pos')?.value || '').trim();
-  const negative = (document.getElementById('prompt-neg')?.value || '').trim();
+  // For text-AI jobs, prefer the text-tab prompt fields; fall back to the AI-tab fields
+  const promptId  = S.hasTextJob ? 'text-prompt-pos' : 'prompt-pos';
+  const negId     = S.hasTextJob ? 'text-prompt-neg' : 'prompt-neg';
+  const prompt   = (document.getElementById(promptId)?.value  || document.getElementById('prompt-pos')?.value  || '').trim();
+  const negative = (document.getElementById(negId)?.value     || document.getElementById('prompt-neg')?.value  || '').trim();
   const nolist = S.nolistOn ? nolistValue() : '';
   showOverlay('AI Redraw starting…', 5);
   const body = {
