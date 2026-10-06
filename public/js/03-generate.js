@@ -130,10 +130,13 @@ function doAiRedraw() {
 function pollJob(id) {
   let elapsed = 0;
   const interval = setInterval(() => {
+    // Self-cancel if user already cancelled (genJobId cleared by cancelGen)
+    if (S.genJobId !== id) { clearInterval(interval); return; }
     elapsed += 2;
     fetch('/api/gen/status/' + id)
       .then(r => r.json())
       .then(d => {
+        if (S.genJobId !== id) { clearInterval(interval); return; }  // cancelled mid-flight
         const pct = Math.min(90, 10 + elapsed * 2);
         setOverlayProgress(pct, d.seconds ? Math.round(d.seconds) + 's elapsed' : '');
         if (d.status === 'done') {
@@ -153,6 +156,10 @@ function pollJob(id) {
           } else {
             showToast('Generation complete but no image returned.', 4000);
           }
+        } else if (d.status === 'cancelled') {
+          clearInterval(interval);
+          S.genJobId = null;
+          hideOverlay();
         } else if (d.status === 'error') {
           clearInterval(interval);
           S.genJobId = null;

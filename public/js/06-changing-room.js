@@ -39,19 +39,27 @@ function onCrSlider() {
   refreshCR();
 }
 
+function _loadCrImg(url) {
+  _crImg = null;
+  const img = new Image();
+  img.onload = () => { _crImg = img; refreshCR(); };
+  img.src = url;
+}
+
 function toggleCrPreview() {
   _crShowStencil = !_crShowStencil;
   const btn = document.getElementById('btn-cr-toggle');
   if (btn) btn.textContent = _crShowStencil ? '⏹ Hide' : '▶ Preview';
   const canvas = document.getElementById('cr-canvas');
   if (canvas) canvas.style.cursor = _crShowStencil ? 'grab' : 'default';
-  if (_crShowStencil && S.currentBlob && !_crImg) {
-    const img = new Image();
-    img.onload = () => { _crImg = img; refreshCR(); };
-    img.src = S.currentBlob;
-  } else {
-    refreshCR();
+  if (_crShowStencil && S.currentBlob) {
+    // Always reload in case currentBlob changed since last toggle
+    if (!_crImg || _crImg.src !== S.currentBlob) {
+      _loadCrImg(S.currentBlob);
+      return; // refreshCR fires in onload
+    }
   }
+  refreshCR();
 }
 
 function resetCrPosition() {
