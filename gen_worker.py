@@ -64,8 +64,8 @@ def control_image(d, long_edge=1024):
         tw, th = max(64, round(W * k / 64) * 64), max(64, round(H * k / 64) * 64)
         g = cv2.resize(g, (tw, th), interpolation=cv2.INTER_AREA)
         g = 255 - g          # invert: black text → white edges for Canny
-        e = cv2.Canny(g, 30, 120)
-        e = cv2.dilate(e, np.ones((2, 2), np.uint8))
+        e = cv2.Canny(g, 20, 120)
+        e = cv2.dilate(e, np.ones((3, 3), np.uint8))
         return Image.fromarray(np.stack([e] * 3, -1)), (tw, th)
     # Use pre-filtered image if available (engine.py already ran skin/stubble smoothing on it)
     filtered_path = os.path.join(d, 'filtered.jpg')
