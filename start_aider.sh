@@ -124,6 +124,11 @@ if [ "$ALREADY" = 0 ] && command -v rocm-smi >/dev/null 2>&1; then
   fi
 fi
 
+# -- GPU VRAM pre-flight (unload / wait / continue / abort if tight) --------
+source /home/dad/bin/aider-gpu-guard.sh
+_guard_models=("$E_NAME"); is_local "$ARCHITECT" && _guard_models+=("$A_NAME")
+gpu_guard "$OLLAMA" "${COMFY:-}" "${_guard_models[@]}" || exit 1
+
 # ---- pre-warm both models so the first turn is fast and they stay resident -------------
 load() { # model ctx
   curl -s --max-time 180 "$OLLAMA/api/generate" \
