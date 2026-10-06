@@ -97,6 +97,8 @@ function init() {
   // Default tab
   setTab('text');
   setTextMode('outline');
+  // Sync AI settings UI to S defaults (keeps Settings tab in sync with state)
+  syncAiUi();
   // Default variation count = 2 so candidates tab always populates
   setVarCount(2);
   // Nolist badge color

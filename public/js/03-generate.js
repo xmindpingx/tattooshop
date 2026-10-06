@@ -79,8 +79,8 @@ function doRender() {
     hideOverlay();
     if (d.error) { showToast('Error: ' + d.error, 4000); return; }
     const url = (d.files && d.files.png) || d.url || d.path;
-    if (d.files && d.files.pdf) S.lastServerPdf = d.files.pdf;
     showStencil(url);
+    if (d.files && d.files.pdf) S.lastServerPdf = d.files.pdf;  // set AFTER showStencil so it isn't cleared
     // Show printed size from engine response
     if (d.inches && d.inches.length === 2) {
       const [wi, hi] = d.inches;
@@ -186,7 +186,17 @@ function showStencil(url) {
   }
   S.currentBlob = url;  // may be blob: or /output/ path
   _crImg = null;        // reset so Changing Room loads the new stencil
-  if (url.startsWith('/output/')) S.lastServerPng = url;
+  if (url.startsWith('/output/')) {
+    // Only keep lastServerPdf paired with the PNG that was rendered with it.
+    // If a new /output/ image appears (AI gen result or a different render),
+    // clear the PDF unless it was set as part of this same server result.
+    if (S.lastServerPng && url !== S.lastServerPng) S.lastServerPdf = null;
+    S.lastServerPng = url;
+  } else {
+    // blob: URL (text outline stencil) — invalidate PDF
+    S.lastServerPdf = null;
+    S.lastServerPng = null;
+  }
   const er = document.getElementById('export-row');
   if (er) er.style.display = '';
 }
@@ -196,7 +206,7 @@ function doExport(type) {
   if (!S.currentBlob) { showToast('Generate a stencil first.', 2500); return; }
   let targetUrl;
   if (type === 'pdf') {
-    if (!S.lastServerPdf || S.lastServerPdf.replace(/\.pdf$/, '.png') !== S.currentBlob) { showToast('PDF only available for the latest Photo Render — run Render first.', 3500); return; }
+    if (!S.lastServerPdf || S.currentBlob !== S.lastServerPng) { showToast('PDF only available for the latest Photo Render — run Render first.', 3500); return; }
     targetUrl = S.lastServerPdf;
   } else {
     targetUrl = S.currentBlob;
@@ -220,7 +230,7 @@ function doDestubble() {
     body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
       smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows, stubble: 0, light: S.light }) })
   .then(r => r.json())
-  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (d.files?.pdf) S.lastServerPdf = d.files.pdf; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
+  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; } else showToast(d.error || 'Failed', 4000); })
   .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 
@@ -234,7 +244,7 @@ function doRelight() {
       smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows,
       stubble: S.stubble, light: Math.max(S.light, 30) }) })
   .then(r => r.json())
-  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (d.files?.pdf) S.lastServerPdf = d.files.pdf; if (url) showStencil(url); else showToast(d.error || 'Failed', 4000); })
+  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; } else showToast(d.error || 'Failed', 4000); })
   .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 

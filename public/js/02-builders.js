@@ -99,6 +99,9 @@ function syncAiUi() {
   ['aiLoraW','aiCfg','aiCnScale','aiSteps'].forEach(k => {
     document.querySelectorAll(`[data-ai="${k}"]`).forEach(el => { el.value = S[k]; });
   });
+  // Sync Settings tab number inputs (they have no data-ai; sync by explicit id)
+  const cfgMap = { 'cfg-steps': S.aiSteps, 'cfg-cfgval': S.aiCfg, 'cfg-cn': S.aiCnScale, 'cfg-loraw': S.aiLoraW };
+  Object.entries(cfgMap).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val; });
   // Sync model and lora selects explicitly (they use IDs, not data-ai)
   setAiModel(S.aiModel);
   onLoraChange(S.aiLora);
