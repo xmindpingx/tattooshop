@@ -1,0 +1,40 @@
+# Project config for /home/dad/www/tattooshop. Overrides ~/.aider.conf.yml.
+# Launch with ./start_aider.sh (pre-warms both models, unloads them on exit).
+#
+# Models stay as set globally: architect gemma4:12b + editor qwen2.5-coder:7b-instruct, with the
+# num_ctx / temperature / keep_alive values in ~/.aider.model.settings.yml. Measured on this machine
+# with both resident: 16.7 of 17.2 GB VRAM used, so neither context can grow. The project is shaped
+# around that instead: small files, ~1.3k tokens of rules, presets in tools/aider/.
+
+# Rules + architecture facts, read-only. In architect mode the editor model receives these too and has
+# only 16384 tokens in total, so keep them short (measure with: /tokens).
+read:
+  - CONVENTIONS.md
+  - ARCHITECTURE.md
+
+# Lint after every edit; problems go back to the model to fix. JavaScript uses tools/lint_js.js
+# (syntax, undefined names, duplicate declarations across public/js/*.js). Python uses aider's built-in
+# flake8 check (syntax + undefined names).
+auto-lint: true
+lint-cmd:
+  - "javascript: node tools/lint_js.js"
+
+# /test runs tools/check.sh: JS + Python static checks and a headless-Chrome load of the live page.
+# About 2 seconds, no GPU. Manual, so unrelated edits don't trigger it.
+test-cmd: tools/check.sh
+auto-test: false
+
+# Do not let aider append '.aider*' to .gitignore: that would also ignore this file and .aiderignore.
+# Aider's runtime files are listed in .gitignore explicitly.
+gitignore: false
+
+# Short, plain, one-line commit messages from a small local model.
+commit-prompt: |
+  Write the git commit message for the diff the user sends.
+  Output exactly one line, at most 72 characters, imperative mood, no quotes, no markdown, no trailing period, no explanation.
+  Start with the area and a colon, using one of: ui, css, server, engine, gen, tools, docs.
+  Example: server: add /api/gen/cancel route
+
+# The assistant must not propose shell commands to run on a live server.
+suggest-shell-commands: false
+analytics-disable: true

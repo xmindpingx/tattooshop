@@ -1,0 +1,12 @@
+# Files aider must not put in the repo map or let you /add. Same syntax as .gitignore.
+# (Untracked/git-ignored directories such as node_modules, venv, models, jobs, output are already
+#  skipped by aider because it only maps git-tracked files.)
+
+# Huge or binary, no use to a language model
+package-lock.json
+public/fonts/
+
+# ~10k tokens of canvas drawing code (one function). Larger than what the 16k-token editor model can
+# take together with the rules, so editing it through aider produces garbage. To work on it anyway,
+# delete this line and use --no-architect so the 24k-token model edits directly.
+public/js/05-avatar-draw.js

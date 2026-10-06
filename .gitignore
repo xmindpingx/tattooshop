@@ -12,3 +12,10 @@ uploads/
 venv/
 venv-gen/
 venv-diff/
+
+# aider runtime files and local dev tools (the .aider.conf.yml and .aiderignore config files ARE tracked)
+.aider.chat.history.md
+.aider.input.history
+.aider.llm.history
+.aider.tags.cache.v4/
+.devtools/
