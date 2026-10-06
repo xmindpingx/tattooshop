@@ -61,10 +61,9 @@ function setTab(tab) {
     if (btn) btn.textContent = '⏹ Hide';
     const canvas = document.getElementById('cr-canvas');
     if (canvas) canvas.style.cursor = 'grab';
-    if (S.currentBlob && !_crImg) {
-      const img = new Image();
-      img.onload = () => { _crImg = img; refreshCR(); };
-      img.src = S.currentBlob;
+    // Always reload if currentBlob changed since _crImg was last loaded (fixes stale preview on tab switch)
+    if (S.currentBlob && (!_crImg || _crImg.src !== S.currentBlob)) {
+      _loadCrImg(S.currentBlob);
     } else { refreshCR(); }
   } else if (tab === 'room') { refreshCR(); }
 }
