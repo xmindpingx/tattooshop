@@ -1,2 +1,6 @@
 # SDXL / ControlNet / LoRA GPU worker (gen_worker.py, ~3.1k tokens).
+# worker.py is loaded read-only so aider sees the stdin/stdout protocol gen_worker.py implements.
+# Key: AMD RX 6800, ROCm, HSA_OVERRIDE_GFX_VERSION=10.3.0; venv-gen, not venv.
+# After editing: pm2 restart tattooshop  (server spawns gen_worker.py as a subprocess).
 /add gen_worker.py
+/read-only worker.py

@@ -1,2 +1,5 @@
 # Express server and API routes (server.js, ~5.8k tokens).
+# worker.py is loaded read-only so aider knows the worker.call() interface without needing to guess.
+# For engine.py changes (cmd_* signatures), use ctx-engine instead (requires --no-architect).
 /add server.js
+/read-only worker.py
