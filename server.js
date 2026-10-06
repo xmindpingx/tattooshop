@@ -252,12 +252,18 @@ app.post('/api/gen/start', wrap(async (req, res) => {
         genJobs.set(gid, { status: 'done', mode, job: id, images, seconds: r.seconds, prompt });
         console.log(`[gen ${gid}] ${mode} x${count} done in ${r.seconds}s`);
       })
-      .catch(e => { console.error('[gen]', e.message); genJobs.set(gid, { status: 'error', mode, job: id, error: e.message }); });
+      .catch(e => {
+        console.error('[gen]', e.message);
+        if ((genJobs.get(gid) || {}).status !== 'cancelled') genJobs.set(gid, { status: 'error', mode, job: id, error: e.message });
+      });
   } else {
     const out = path.join(jobDir(id), `gen_${gid}.png`);
     ready.then(() => gen.call('generate', { ...genArgs, out, seed: Number.isFinite(+b.seed) ? +b.seed : null }))
       .then(r => { genJobs.set(gid, { status: 'done', mode, job: id, image: `/api/gen/image/${id}/${gid}`, seconds: r.seconds, prompt }); console.log(`[gen ${gid}] ${mode} done in ${r.seconds}s`); })
-      .catch(e => { console.error('[gen]', e.message); genJobs.set(gid, { status: 'error', mode, job: id, error: e.message }); });
+      .catch(e => {
+        console.error('[gen]', e.message);
+        if ((genJobs.get(gid) || {}).status !== 'cancelled') genJobs.set(gid, { status: 'error', mode, job: id, error: e.message });
+      });
   }
   res.json({ genId: gid, mode, prompt, count });
 }));
