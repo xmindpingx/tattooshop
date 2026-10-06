@@ -129,16 +129,31 @@ function doAiRedraw() {
 /* ── Job polling ───────────────────────────────────────────────────── */
 function pollJob(id) {
   let elapsed = 0;
+  let warnedStall = false;
   const interval = setInterval(() => {
     // Self-cancel if user already cancelled (genJobId cleared by cancelGen)
     if (S.genJobId !== id) { clearInterval(interval); return; }
     elapsed += 2;
+    // Hard timeout at 8 minutes — GPU may have crashed or OOM-looped
+    if (elapsed >= 480) {
+      clearInterval(interval);
+      S.genJobId = null;
+      hideOverlay();
+      showToast('Generation timed out after 8 minutes — try a smaller image or fewer steps.', 6000);
+      return;
+    }
     fetch('/api/gen/status/' + id)
       .then(r => r.json())
       .then(d => {
         if (S.genJobId !== id) { clearInterval(interval); return; }  // cancelled mid-flight
         const pct = Math.min(90, 10 + elapsed * 2);
-        setOverlayProgress(pct, d.seconds ? Math.round(d.seconds) + 's elapsed' : '');
+        const label = d.seconds ? Math.round(d.seconds) + 's elapsed' : (elapsed + 's elapsed');
+        setOverlayProgress(pct, label);
+        // Stall warning at 3 minutes
+        if (!warnedStall && elapsed >= 180) {
+          warnedStall = true;
+          showToast('Still generating… GPU may be slow. You can cancel and try fewer steps.', 5000);
+        }
         if (d.status === 'done') {
           clearInterval(interval);
           S.genJobId = null;
