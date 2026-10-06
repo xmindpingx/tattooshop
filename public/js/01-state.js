@@ -1,0 +1,96 @@
+/* ── State ─────────────────────────────────────────────────────────── */
+const S = {
+  base:'sdxl', baseId:'sdxl', prepCache:null,
+  hasPhoto:false, bright:0, contrast:0, autoLevels:false,
+  crop:null, aspect:'free', mode:'photo', points:[], rotation:0,
+  flipH:false, flipV:false,
+  style:'', textMode:'outline', selectedFont:'Bebas Neue',
+  activeChips:new Set(), activeAiChips:new Set(),
+  job:null, aiModel:'sdxl', aiLora:'tattoo', aiLoraW:0.8,
+  aiCfg:7, aiCnScale:0.75, aiSteps:30, aiCount:2, aiGoal:'stencil',
+  sizeIn:5, nolistOn:true, hasStencil:false, currentBlob:null,
+  crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
+  detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20, light:0,
+  cnScale:0.75, cfg:7, steps:30, loraW:0.8, candidates:2
+};
+
+/* ── Font list ─────────────────────────────────────────────────────── */
+const FONTS = [
+  {name:'Bebas Neue',cat:'bold'},{name:'Anton',cat:'bold'},{name:'Black Ops One',cat:'bold'},
+  {name:'Oswald',cat:'bold'},{name:'Barlow Condensed',cat:'bold'},{name:'Rajdhani',cat:'bold'},
+  {name:'Cinzel Decorative',cat:'gothic'},{name:'Uncial Antiqua',cat:'gothic'},
+  {name:'Pirata One',cat:'gothic'},{name:'MedievalSharp',cat:'gothic'},
+  {name:'Dancing Script',cat:'script'},{name:'Great Vibes',cat:'script'},
+  {name:'Satisfy',cat:'script'},{name:'Pacifico',cat:'script'},{name:'Parisienne',cat:'script'},
+  {name:'Share Tech Mono',cat:'fineline'},{name:'Courier Prime',cat:'fineline'},
+  {name:'Special Elite',cat:'fineline'},{name:'Permanent Marker',cat:'fineline'},
+  {name:'Caveat',cat:'fineline'}
+];
+
+/* ── Style chips ───────────────────────────────────────────────────── */
+const STYLE_CHIPS = [
+  'bold black outlines','crisp hard edges','razor-sharp line art',
+  'clean vector lines','thick ink strokes','pure black on white',
+  'solid black fills','stark high contrast','comic ink style',
+  'flash tattoo style','thermal stencil ready','geometric shapes',
+  'tribal pattern','fine detail work','stipple texture'
+];
+const AI_CHIPS = [
+  'bold black outlines','crisp hard edges','razor-sharp line art',
+  'clean vector lines','thick ink strokes','pure black on white',
+  'solid black fills','stark high contrast','comic ink style',
+  'flash tattoo style','thermal stencil ready','traditional tattoo',
+  'new school tattoo','blackwork','dotwork','geometric tattoo'
+];
+
+/* ── Tab switching ─────────────────────────────────────────────────── */
+function setTab(tab) {
+  document.querySelectorAll('.tab-nav button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => {
+    p.classList.toggle('active', p.dataset.tab === tab);
+  });
+  const nl = document.getElementById('nolist-wrap');
+  if (nl) nl.style.display = (tab === 'text' || tab === 'ai') ? '' : 'none';
+  if (tab === 'room' && S.hasStencil && !_crShowStencil) {
+    _crShowStencil = true;
+    const btn = document.getElementById('btn-cr-toggle');
+    if (btn) btn.textContent = '⏹ Hide';
+    const canvas = document.getElementById('cr-canvas');
+    if (canvas) canvas.style.cursor = 'grab';
+    if (S.currentBlob && !_crImg) {
+      const img = new Image();
+      img.onload = () => { _crImg = img; refreshCR(); };
+      img.src = S.currentBlob;
+    } else { refreshCR(); }
+  } else if (tab === 'room') { refreshCR(); }
+}
+
+function setInner(scope, inner) {
+  const pane = document.querySelector(`.tab-pane.active`);
+  if (!pane) return;
+  pane.querySelectorAll(`.inner-nav[data-scope="${scope}"] button`).forEach(b => {
+    b.classList.toggle('active', b.dataset.inner === inner);
+  });
+  pane.querySelectorAll(`.inner-pane[data-scope="${scope}"]`).forEach(p => {
+    p.classList.toggle('active', p.dataset.inner === inner);
+  });
+}
+
+function setTextMode(mode) {
+  S.textMode = mode;
+  document.querySelectorAll('#text-mode-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const aiExtra = document.getElementById('text-ai-extra');
+  if (aiExtra) aiExtra.style.display = mode === 'ai' ? '' : 'none';
+}
+
+function setGoal(goal) {
+  S.aiGoal = goal;
+  document.querySelectorAll('#goal-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.goal === goal);
+  });
+}
+
