@@ -17,6 +17,7 @@ LOAD="tools/aider/ctx-$PRESET.load"
 VENV=/home/dad/ai-stacks/stacks/venvLM
 [ -f "$VENV/bin/activate" ] || { echo "venv not found at $VENV"; exit 1; }
 . "$VENV/bin/activate"
+source ~/.aider-secrets 2>/dev/null || true  # GEMINI_API_KEY etc.
 pgrep -f '[a]ider ' >/dev/null && echo "note: another aider process is running (VRAM is shared)" >&2
 
 # Stash any uncommitted tracked changes so they don't ride onto the task branch
@@ -46,7 +47,7 @@ git checkout -q -b "$BR" || { [ $STASHED -eq 1 ] && git stash pop; exit 1; }
 LOG="/tmp/aider-task-$(date +%H%M%S).log"
 echo "branch $BR, log $LOG"
 ARCH_FLAG=()
-$NO_ARCHITECT && ARCH_FLAG=(--no-architect) && echo "note: --no-architect (gemma4:12b edits directly, 24k window)"
+$NO_ARCHITECT && ARCH_FLAG=(--no-architect) && echo "note: --no-architect (architect edits directly — Gemini or gemma4:12b fallback)"
 timeout 900 aider "${ARCH_FLAG[@]}" "${FILES[@]}" --yes-always --no-pretty --no-stream --message-file "$PROMPT" "$@" > "$LOG" 2>&1
 RC=$?
 echo "aider exit $RC"
