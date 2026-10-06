@@ -10,7 +10,7 @@ function onGenerate() {
 
 /* ── Text stencil ──────────────────────────────────────────────────── */
 function doTextStencil() {
-  if (S._textRendering) { showToast('Already generating — wait for it to finish.', 2500); return; }
+  if (S._textRendering || S._rendering || S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
   const textEl = document.getElementById('text-input');
   const text = textEl ? textEl.value.trim() : '';
   if (!text) { showToast('Enter some text first.', 2500); return; }
@@ -62,7 +62,7 @@ function doTextStencil() {
 
 /* ── Photo render ──────────────────────────────────────────────────── */
 function doRender() {
-  if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
+  if (S._rendering || S._textRendering || S.genJobId) { showToast('Already rendering — wait for it to finish.', 2500); return; }
   if (!S.hasPhoto) { showToast('Upload a photo first.', 2500); return; }
   S._rendering = true;
   showOverlay('Rendering stencil…', 10);
