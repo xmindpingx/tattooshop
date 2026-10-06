@@ -1,2 +1,7 @@
-# Changing Room preview controls (~2.5k tokens together). The avatar drawing itself (05-avatar-draw.js) is excluded on purpose.
+# Changing Room preview controls (~2.5k tokens together).
+# 04-changing-room-state.js: shared S.crArea, S.crGender, S.crSkin state — no functions, just exports
+# 06-changing-room.js: setCrArea(area), setCrGender(g), toggleCrFullBody(), setCrSkin(hex),
+#                      onCrSlider(), toggleCrPreview(), resetCrPosition(), refreshCR(), initCR()
+# The avatar drawing itself (05-avatar-draw.js) is excluded on purpose — use ctx-avatar for that.
+# After editing: browser reload (public/ is served live).  No pm2 restart needed.
 /add public/js/04-changing-room-state.js public/js/06-changing-room.js

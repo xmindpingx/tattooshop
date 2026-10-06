@@ -1,2 +1,6 @@
 # Page state, tab switching, UI builders, sliders, presets (~2.4k tokens together).
+# 01-state.js: setTab(tab), setInner(scope, inner), setTextMode(mode), setGoal(goal)
+# 02-builders.js: buildFontGrid, selectFont, buildChips, toggleChip, syncPromptFromChips,
+#                 updateAi, setVarCount, onLoraChange, syncAiUi, onSlider, applyPhotoPreset
+# After editing: browser reload (public/ is served live).  No pm2 restart needed.
 /add public/js/01-state.js public/js/02-builders.js
