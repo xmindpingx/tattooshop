@@ -55,6 +55,18 @@ def pipe(base='sdxl', lora='tattoo', lora_weight=0.65):
 
 def control_image(d, long_edge=1024):
     """Canny edges of the de-speckled subject, plus its silhouette, on black. Returns (PIL image, size)."""
+    # ── Text-job shortcut: stencil.png = black text on white, no mask/src needed ──
+    stencil_path = os.path.join(d, 'stencil.png')
+    if os.path.exists(stencil_path):
+        g = np.array(Image.open(stencil_path).convert('L'))
+        H, W = g.shape
+        k = long_edge / max(H, W)
+        tw, th = max(64, round(W * k / 64) * 64), max(64, round(H * k / 64) * 64)
+        g = cv2.resize(g, (tw, th), interpolation=cv2.INTER_AREA)
+        g = 255 - g          # invert: black text → white edges for Canny
+        e = cv2.Canny(g, 30, 120)
+        e = cv2.dilate(e, np.ones((2, 2), np.uint8))
+        return Image.fromarray(np.stack([e] * 3, -1)), (tw, th)
     # Use pre-filtered image if available (engine.py already ran skin/stubble smoothing on it)
     filtered_path = os.path.join(d, 'filtered.jpg')
     src_path = os.path.join(d, 'src.jpg')

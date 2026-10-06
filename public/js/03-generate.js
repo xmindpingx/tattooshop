@@ -11,12 +11,32 @@ function onGenerate() {
 /* ── Text stencil ──────────────────────────────────────────────────── */
 function doTextStencil() {
   if (S._textRendering) { showToast('Already generating — wait for it to finish.', 2500); return; }
-  if (S.textMode === 'ai') { showToast('AI lettering coming soon — use Outline Only for now.', 3000); return; }
   const textEl = document.getElementById('text-input');
   const text = textEl ? textEl.value.trim() : '';
   if (!text) { showToast('Enter some text first.', 2500); return; }
   const sizeEl = document.getElementById('size-in');
   const size = sizeEl ? parseFloat(sizeEl.value) : 5;
+
+  if (S.textMode === 'ai') {
+    // Step 1: create a job dir with a text stencil, then launch AI generation
+    S._textRendering = true;
+    showOverlay('Preparing text job…', 5);
+    fetch('/api/text-job', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, font: S.selectedFont, sizeIn: size, chips: [...S.activeChips].join(', ') })
+    })
+    .then(r => { if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Server error'); }); return r.json(); })
+    .then(d => {
+      S.jobId = d.jobId;
+      S.hasTextJob = true;
+      S._textRendering = false;
+      // Step 2: kick off AI generation — reuse the same flow as the AI tab
+      doAiRedraw();
+    })
+    .catch(e => { S._textRendering = false; hideOverlay(); showToast('Error: ' + e.message, 4000); });
+    return;
+  }
+
   S._textRendering = true;
   showOverlay('Creating stencil…', 0);
   fetch('/api/text-stencil', {
@@ -78,7 +98,7 @@ function doRender() {
 /* ── AI redraw ─────────────────────────────────────────────────────── */
 function doAiRedraw() {
   if (S.genJobId) { showToast('Already generating — wait for it to finish.', 2500); return; }
-  if (!S.hasStencil && !S.hasPhoto) { showToast('Generate or upload a stencil first.', 2500); return; }
+  if (!S.hasStencil && !S.hasPhoto && !S.hasTextJob) { showToast('Generate or upload a stencil first.', 2500); return; }
   if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
   const prompt = (document.getElementById('prompt-pos')?.value || '').trim();
   const negative = (document.getElementById('prompt-neg')?.value || '').trim();

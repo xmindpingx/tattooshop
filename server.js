@@ -315,6 +315,20 @@ app.post('/api/text-stencil', wrap(async (req, res) => {
   res.sendFile(outPng, e => e && !res.headersSent && res.sendStatus(500));
 }));
 
+// ─── text-to-AI-job: create a job dir with a text stencil for /api/gen/start ─
+app.post('/api/text-job', wrap(async (req, res) => {
+  if (!gen.available()) throw Object.assign(new Error('The AI redraw models are not installed on this server'), { status: 501 });
+  const { text, font, sizeIn, chips } = req.body || {};
+  if (!text || !String(text).trim()) throw Object.assign(new Error('text required'), { status: 400 });
+  const r = await worker.call('text_job', {
+    text: String(text).slice(0, 200),
+    font: String(font || 'Arial'),
+    sizeIn: Math.min(14, Math.max(0.5, Number(sizeIn) || 5)),
+    chips: String(chips || ''),
+  });
+  res.json({ jobId: r.jobId });
+}));
+
 app.use((err, _q, res, _n) => res.status(err.status || 400).json({ error: err.message }));
 
 // ─── housekeeping ───────────────────────────────────────────────────────────

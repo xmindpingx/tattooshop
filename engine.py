@@ -691,3 +691,16 @@ def cmd_text_stencil(text='', font='Arial', sizeIn=5.0, chips='', outPng=''):
     os.makedirs(os.path.dirname(outPng) if os.path.dirname(outPng) else '.', exist_ok=True)
     out_img.save(outPng, dpi=(DPI, DPI))
     return {'png': outPng, 'elapsed': round(time.time() - t0, 2)}
+
+
+# ─── Text → AI job dir ────────────────────────────────────────────────────────
+def cmd_text_job(text='', font='Arial', sizeIn=5.0, chips=''):
+    """Create a job dir containing a text stencil PNG so gen_worker can use it directly.
+    Returns {jobId} — the caller passes this to /api/gen/start as usual."""
+    import uuid
+    job_id = str(uuid.uuid4())
+    job_dir = os.path.join(HERE, 'jobs', job_id)
+    os.makedirs(job_dir, exist_ok=True)
+    out_png = os.path.join(job_dir, 'stencil.png')
+    cmd_text_stencil(text=text, font=font, sizeIn=sizeIn, chips=chips, outPng=out_png)
+    return {'jobId': job_id}
