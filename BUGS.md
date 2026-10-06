@@ -1,6 +1,6 @@
 # TattooShop — Known Bugs & Issues
 
-_Last updated: 2026-10-06 (session 2)_
+_Last updated: 2026-10-06 (session 4)_
 
 ## 🐛 Open Bugs
 
@@ -10,6 +10,12 @@ _Last updated: 2026-10-06 (session 2)_
 
 ### Trace / Stencil Pipeline
 - [ ] **Shadow side artifacts at extreme stubble near piercings**: PROTECT lowered to 25 (from 30), dilation halo widened (0.009 ref), drop_small tightened (0.003 → 0.004 ref). Improved but not eliminated at stubble=65 with strong directional light. Workaround: stubble ≤ 60 avoids it in practice. If still seen: try `PROTECT=20` but watch for tattoo ink getting smoothed.
+
+## ✅ Fixed Session 4 (2026-10-06)
+
+- [x] **Photo tab inner-nav (Crop & Adjust / Subject) completely broken**: `setInner()` queries `.inner-nav[data-scope]` and `.inner-pane[data-scope]`, but the Photo tab's `inner-nav` had no `data-scope` attribute, and the pane `data-inner` values used a `photo-` prefix that `setInner` didn't include. Clicking the sub-tabs did nothing. Fixed: added `data-scope="photo"` to inner-nav, corrected pane `data-inner` values to `adjust`/`subject` to match what `setInner` passes. Fixed in `public/index.html`.
+- [x] **`selectCandidate()` always jumped to AI tab even for text-job results**: When user ran AI generation from the Text tab (`S.hasTextJob = true`), selecting a candidate would switch them to the AI tab, discarding their text tab context. Now returns to `text` tab when `S.hasTextJob` is true, `ai` tab otherwise. Fixed in `public/js/03-generate.js`.
+- [x] **`pollJob` had no timeout — a crashed GPU would hang the overlay forever**: Added a 3-minute stall warning toast and an 8-minute hard timeout that clears the overlay and tells the user to try fewer steps. Also fixed: progress label was empty string during pending state (now always shows elapsed seconds). Fixed in `public/js/03-generate.js`.
 
 ---
 
