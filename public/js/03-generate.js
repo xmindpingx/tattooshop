@@ -263,11 +263,27 @@ function doDestubble() {
   if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
   S._rendering = true;
   showOverlay('Removing stubble…', 30);
-  fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
-      smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows, stubble: 0, light: S.light }) })
+  fetch('/api/render', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
+      smooth: S.smooth, texture: S.texture, skin: S.skin,
+      fills: S.fills, shadows: S.shadows, stubble: 0, light: S.light
+    })
+  })
   .then(r => r.json())
-  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; } else showToast(d.error || 'Failed', 4000); })
+  .then(d => {
+    S._rendering = false;
+    hideOverlay();
+    const url = d.files?.png || d.url;
+    if (url) {
+      showStencil(url);
+      if (d.files?.pdf) S.lastServerPdf = d.files.pdf;
+      setTab('photo');  // ensure post-photo panel is visible
+    } else {
+      showToast(d.error || 'Failed', 4000);
+    }
+  })
   .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 
@@ -276,12 +292,27 @@ function doRelight() {
   if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
   S._rendering = true;
   showOverlay('Relighting…', 30);
-  fetch('/api/render', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
+  fetch('/api/render', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      jobId: S.jobId, sizeIn: S.sizeIn, detail: S.detail, cleanup: S.cleanup,
       smooth: S.smooth, texture: S.texture, skin: S.skin, fills: S.fills, shadows: S.shadows,
-      stubble: S.stubble, light: Math.max(S.light, 30) }) })
+      stubble: S.stubble, light: Math.max(S.light, 30)
+    })
+  })
   .then(r => r.json())
-  .then(d => { S._rendering = false; hideOverlay(); const url = d.files?.png || d.url; if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; } else showToast(d.error || 'Failed', 4000); })
+  .then(d => {
+    S._rendering = false;
+    hideOverlay();
+    const url = d.files?.png || d.url;
+    if (url) {
+      showStencil(url);
+      if (d.files?.pdf) S.lastServerPdf = d.files.pdf;
+      setTab('photo');  // ensure post-photo panel is visible
+    } else {
+      showToast(d.error || 'Failed', 4000);
+    }
+  })
   .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 
