@@ -29,13 +29,16 @@ function selectFont(name) {
 function buildChips(arr, containerId, stateSet, promptId) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  // Tag container so toggleChip knows which Set to use (avoids fragile name-based heuristic)
+  el.dataset.chipset = (stateSet === S.activeAiChips) ? 'ai' : 'text';
   el.innerHTML = arr.map(c =>
     `<button class="chip" onclick="toggleChip(this,'${c.replace(/'/g,"\\'")}','${containerId}','${promptId}')">${c}</button>`
   ).join('');
 }
 
 function toggleChip(btn, chip, containerId, promptId) {
-  const set = containerId.includes('ai') ? S.activeAiChips : S.activeChips;
+  const container = document.getElementById(containerId);
+  const set = (container && container.dataset.chipset === 'ai') ? S.activeAiChips : S.activeChips;
   if (set.has(chip)) { set.delete(chip); btn.classList.remove('on'); }
   else { set.add(chip); btn.classList.add('on'); }
   syncPromptFromChips(set, promptId);
