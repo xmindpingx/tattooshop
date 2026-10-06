@@ -156,3 +156,7 @@ header .spacer{flex:1}
 #toast.show{opacity:1;transform:translateY(0)}
 #toast.ok{border-color:var(--green);color:var(--green)}
 #toast.err{border-color:var(--red);color:var(--red)}
+
+.nolist-why { font-size:.75rem; color:var(--muted); margin:0 0 6px; }
+#nolist-terms { display:flex; flex-wrap:wrap; gap:4px 12px; margin-bottom:6px; }
+.nolist-term { font-size:.75rem; cursor:pointer; white-space:nowrap; }

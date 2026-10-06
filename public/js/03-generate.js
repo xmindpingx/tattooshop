@@ -82,7 +82,7 @@ function doAiRedraw() {
   if (!S.jobId) { showToast('Session lost — re-upload or regenerate first.', 3000); return; }
   const prompt = (document.getElementById('prompt-pos')?.value || '').trim();
   const negative = (document.getElementById('prompt-neg')?.value || '').trim();
-  const nolist = S.nolistOn ? (document.getElementById('nolist-text')?.value || '') : '';
+  const nolist = S.nolistOn ? nolistValue() : '';
   showOverlay('AI Redraw starting…', 5);
   const body = {
     jobId: S.jobId, prompt, negative, nolist,
@@ -267,3 +267,21 @@ function setSizeChip(s) {
   if (sizeEl) { sizeEl.value = s; onSizeChange(s); }
 }
 
+
+function buildNolist() {
+  const box = document.getElementById('nolist-terms');
+  if (!box || box.children.length) return;
+  NOLIST_TERMS.forEach(t => {
+    const l = document.createElement('label');
+    l.className = 'nolist-term';
+    const c = document.createElement('input');
+    c.type = 'checkbox'; c.checked = true; c.value = t;
+    l.appendChild(c); l.appendChild(document.createTextNode(' ' + t));
+    box.appendChild(l);
+  });
+}
+function nolistValue() {
+  const on = Array.from(document.querySelectorAll('#nolist-terms input:checked')).map(c => c.value);
+  const extra = (document.getElementById('nolist-text')?.value || '').trim();
+  return on.concat(extra ? [extra] : []).join(', ');
+}

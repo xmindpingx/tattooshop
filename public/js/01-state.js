@@ -94,3 +94,5 @@ function setGoal(goal) {
   });
 }
 
+
+const NOLIST_TERMS = ["ambient light", "global illumination", "soft shading", "smooth gradients", "diffuse lighting", "subsurface scattering", "rim glow", "bokeh", "depth of field", "fog", "haze", "noise", "grain", "halftone", "stippling", "crosshatching", "watercolor wash", "airbrush", "soft focus", "blurry", "painterly", "photorealistic skin texture", "pores", "freckles", "wrinkles", "color", "grey tones", "mid-tones", "feathered edges"];

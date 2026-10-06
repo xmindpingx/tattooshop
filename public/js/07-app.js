@@ -84,6 +84,7 @@ function showToast(msg, ms) {
 
 /* ── Init ──────────────────────────────────────────────────────────── */
 function init() {
+  buildNolist();
   // Build font grid
   buildFontGrid();
   // Build chip banks
