@@ -39,8 +39,10 @@ folder's `.aider.conf.yml`, and unloads the models when you quit.
   that touches several files must stay under what 16,384 tokens can hold.
 - With both models loaded, VRAM was at 16.72 of 17.16 GB, so the contexts in `~/.aider.model.settings.yml` cannot grow and are left alone.
 - `.aider.model.settings.yml` in this folder overrides the architect for this project only, with `think: false`. With thinking on, gemma4:12b used its whole
-  4,096-token output budget on self-checks and returned an empty plan. Observed downside of thinking off: for a two-part bug, the plan covered only the first part.
-  Give one requirement per prompt, or re-check the diff against your list.
+  4,096-token output budget on self-checks and returned an empty plan. Raising the budget to 8,192 did not help: it used all 8.2k tokens and again returned
+  an empty answer (tested on the same prompt). Observed downside of thinking off: for a two-part bug, the plan covered only the first part and wrongly said the
+  second part was already handled. Giving each requirement its own prompt worked: the route and the `.catch` guard for `/api/gen/cancel` were two prompts of
+  about 1 minute each, and both edits were correct. Always read the diff against your list.
 
 ## Things that go wrong
 - Aider asks "Add X to the chat?" when the plan mentions a file that is not in the chat. In one test with `--yes-always` that auto-yes re-ran the architect, its
