@@ -1,6 +1,6 @@
 # TattooShop — Known Bugs & Issues
 
-_Last updated: 2026-10-06_
+_Last updated: 2026-10-06 (session 2)_
 
 ## 🐛 Open Bugs
 
@@ -13,7 +13,27 @@ _Last updated: 2026-10-06_
 
 ---
 
-## ✅ Fixed This Session
+## ✅ Fixed Session 2 (2026-10-06)
+
+- [x] **`cv2.polylines` drawing strokes as closed loops**: `isClosed=True` was connecting the last point of every curve back to its start — eyebrows, eyelids, lips all got a spurious closing line drawn across the face. Changed to `False`. Fixed in `engine.py`.
+- [x] **Flash Stencil button was a stub**: `doFlash()` always showed a toast saying "run AI Redraw first" regardless of what was displayed. Now properly extracts `genId` from the current AI image URL and calls `/api/flash`. Fixed in `public/js/03-generate.js`.
+- [x] **`cmd_flash` diagonal shade lines had float modulo**: `sp * 1.4` is float, causing fractional modulo (`%`) to produce jagged/noisy diagonal lines instead of clean parallel stripes. Now `round(sp * 1.4)`. Fixed in `engine.py`.
+- [x] **Dead legacy state props removed**: `S.job`, `S.cnScale`, `S.cfg`, `S.steps`, `S.loraW`, `S.candidates` were defined but never read. Removed. `S.job` was renamed to `S.jobId` (matches actual usage). `S.lastServerPng`, `S.lastServerPdf`, `S._rendering` now explicitly initialized. Fixed in `public/js/01-state.js`.
+
+---
+
+## ✅ Fixed Session 1 (2026-10-06)
+
+- [x] **PDF export guard race condition**: `doRender()` set `S.lastServerPdf` before calling `showStencil()`, then `showStencil()`'s new logic cleared it. Reordered: `lastServerPdf` is now set after `showStencil()` in all three render handlers. Fixed in `public/js/03-generate.js`.
+- [x] **PDF export guard used fragile path reconstruction**: Old guard did `.replace(/\.pdf$/, '.png')` on the stored PDF path to reconstruct the PNG path, then compared to `currentBlob`. Now uses `S.currentBlob !== S.lastServerPng` state comparison directly. Fixed in `public/js/03-generate.js`.
+- [x] **AI gen stale PDF allowed**: After AI Redraw, `showStencil(genUrl)` set `lastServerPng = genUrl`, making the old PDF guard pass (gen URL appeared to be the "server PNG"). Now `showStencil()` clears `lastServerPdf` whenever a new `/output/` URL differs from `lastServerPng`. Fixed in `public/js/03-generate.js`.
+- [x] **S AI defaults mismatched server PROMPTS**: `S.aiSteps:30` vs server `28`, `S.aiCfg:7` vs server `7.5`, `S.aiCnScale:0.75` vs server `0.85`, `S.aiLoraW:0.8` vs server `0.65`. Aligned all. Fixed in `public/js/01-state.js`.
+- [x] **Settings tab number inputs not synced**: `cfg-steps`, `cfg-cfgval`, `cfg-cn`, `cfg-loraw` had no `data-ai` attributes so `syncAiUi()` never touched them. Added explicit ID mapping. Fixed in `public/js/02-builders.js`.
+- [x] **`syncAiUi()` not called on init**: Settings tab always showed HTML defaults instead of S defaults. Added call in `init()`. Fixed in `public/js/07-app.js`.
+
+---
+
+## ✅ Fixed Earlier Sessions
 
 - [x] **`S.hasTextJob` never cleared**: After text AI generation, flag stayed true forever. Now cleared in `setTextMode('outline')` and in `handlePhotoFile()` on upload success. Fixed 2026-10-06.
 - [x] **`selectCandidate()` switching to wrong tab**: Was switching to `text` tab after selecting a candidate from Candidates. Fixed to switch to `ai` tab (where user can re-run or export). Fixed 2026-10-06.

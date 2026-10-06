@@ -9,7 +9,7 @@ const S = {
   jobId:null, aiModel:'sdxl', aiLora:'tattoo', aiLoraW:0.65,
   aiCfg:7.5, aiCnScale:0.85, aiSteps:28, aiCount:2, aiGoal:'stencil',
   sizeIn:5, nolistOn:true, hasStencil:false, hasTextJob:false, currentBlob:null, lastServerPng:null, lastServerPdf:null,
-  _rendering:false, crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
+  _rendering:false, _uploading:false, _textRendering:false, crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
   detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20, light:0
 };
 
