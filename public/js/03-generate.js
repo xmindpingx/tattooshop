@@ -294,8 +294,8 @@ function loadCandidates(jobId, images, autoSwitch) {
 
 function selectCandidate(url) {
   showStencil(url);
-  // Go to AI tab so user can re-run or export; text-job users can go back to text manually
-  setTab('ai');
+  // Return to originating tab: text-job users stay on text; otherwise go to AI tab
+  setTab(S.hasTextJob ? 'text' : 'ai');
   showToast('Candidate selected — ready to export or re-run!', 2500);
   document.querySelectorAll('.cand-thumb').forEach(t => {
     t.classList.toggle('selected', t.dataset.url === url);
