@@ -1,0 +1,44 @@
+#!/bin/bash
+# One-shot, non-interactive aider run for a single small task.
+#   tools/aider/task.sh <preset> <prompt-file> [extra aider args]
+# <preset> is the name in tools/aider/ctx-<preset>.load (server, generate, ui-logic, css, markup, ...).
+# The preset's "/add" files become editable files, "/read-only" files become read-only; then the prompt
+# file is sent as the one message. Work happens on a new branch aider/task-<time>, then tools/check.sh runs.
+# Write ONE requirement per prompt file, in the BUG / WHERE / EXPECTED / CONSTRAINTS / DONE WHEN form
+# (see tools/aider/prompts/bugfix.md). Mention no file paths in the prompt: with --yes-always aider would
+# auto-add any file the plan mentions, which derails the small editor model.
+set -u
+cd "$(dirname "$0")/../.." || exit 1
+PRESET="${1:-}"; PROMPT="${2:-}"; [ $# -ge 2 ] && shift 2
+LOAD="tools/aider/ctx-$PRESET.load"
+[ -f "$LOAD" ] && [ -f "$PROMPT" ] || { echo "usage: $0 <preset> <prompt-file> [aider args]   (presets: $(ls tools/aider | sed -n 's/^ctx-\(.*\)\.load$/\1/p' | tr '\n' ' '))"; exit 2; }
+VENV=/home/dad/ai-stacks/stacks/venvLM
+[ -f "$VENV/bin/activate" ] || { echo "venv not found at $VENV"; exit 1; }
+. "$VENV/bin/activate"
+pgrep -f '[a]ider ' >/dev/null && echo "note: another aider process is running (VRAM is shared)" >&2
+FILES=()
+while read -r cmd arg; do
+  case "$cmd" in
+    /add)       FILES+=("$arg") ;;
+    /read-only) FILES+=(--read "$arg") ;;
+  esac
+done < "$LOAD"
+[ ${#FILES[@]} -gt 0 ] || { echo "preset $PRESET has no /add lines"; exit 2; }
+BR="aider/task-$(date +%Y%m%d-%H%M%S)"
+git checkout -q -b "$BR" || exit 1
+LOG="/tmp/aider-task-$(date +%H%M%S).log"
+echo "branch $BR, log $LOG"
+timeout 900 aider "${FILES[@]}" --yes-always --no-pretty --no-stream --message-file "$PROMPT" "$@" > "$LOG" 2>&1
+RC=$?
+echo "aider exit $RC"
+N=$(git rev-list --count main.."$BR")
+if [ "$N" -eq 0 ]; then
+  echo "RESULT: NO COMMITS. aider changed nothing (exit code 0 does not mean success)."
+  grep -q "did not conform\|failed to match" "$LOG" && echo "  the editor model's edit did not apply (see $LOG); try a smaller prompt or make the edit by hand"
+  git checkout -q main && git branch -d "$BR" >/dev/null && echo "  empty branch $BR removed"
+  exit 1
+fi
+git --no-pager log --oneline main.."$BR"
+git --no-pager diff --stat main.."$BR"
+tools/check.sh 2>&1 | tail -3
+echo "review:  git diff main..$BR     merge:  git checkout main && git merge --ff-only $BR     discard:  git checkout main"
