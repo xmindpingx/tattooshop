@@ -10,6 +10,6 @@ CONSTRAINTS: smallest change, only <file(s)>, follow the existing style.
 DONE WHEN: <command that must pass, e.g. node tools/lint_js.js server.js> and <what to look at in the browser/API>
 ```
 
-Why this shape: the 12B architect plans from the text and the repo map, and the 7B editor sees only the
-architect's plan plus the files in the chat. Naming the helpers and the edge case in the prompt is what keeps
-both from inventing names or fixing only the happy path. Fixed bugs worth keeping go in BUGS.md.
+Why this shape: the architect (Gemini or gemma4:12b) plans from the text and the repo map, and the 7B editor
+sees only the architect's plan plus the files in the chat. Naming the helpers and the edge case in the prompt is
+what keeps both from inventing names or fixing only the happy path. Fixed bugs worth keeping go in BUGS.md.
