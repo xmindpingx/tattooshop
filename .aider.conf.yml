@@ -20,9 +20,13 @@ lint-cmd:
   - "javascript: node tools/lint_js.js"
 
 # /test runs tools/check.sh: JS + Python static checks and a headless-Chrome load of the live page.
-# About 2 seconds, no GPU. Manual, so unrelated edits don't trigger it.
+# About 2 seconds, no GPU, read-only (GET only, no mutation). Confirmed 2026-10-06 (read the
+# script) -- safe to run after every edit so a claimed fix is actually checked.
 test-cmd: tools/check.sh
-auto-test: false
+auto-test: true
+
+# ── show real diffs, not just the chat narration ───────────────────────────
+show-diffs: true
 
 # Do not let aider append '.aider*' to .gitignore: that would also ignore this file and .aiderignore.
 # Aider's runtime files are listed in .gitignore explicitly.
