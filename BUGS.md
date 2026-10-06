@@ -16,8 +16,8 @@ _Last updated: 2026-10-01_
 ### Export
 - [x] **PDF export size not shown to user**: doRender() now shows a toast with actual printed dimensions from d.inches[]. Fixed 2026-10-02.
 
-### Thermal No-List (Not Yet Built)
-- [ ] **Thermal no-list not yet implemented**: Planned feature (see TODO.md). Current negative prompts manually include some thermal-safe terms but there's no UI toggle or per-term checklist yet.
+### Thermal No-List (Partly Built)
+- [~] **Thermal no-list partly implemented**: ON/OFF panel (`nolist-wrap`) with an editable `nolist-text` textarea is in the UI, and `/api/gen/start` appends `nolist` to the negative prompt. Still missing: the per-term checkboxes and the explanatory text from TODO.md. Corrected 2026-10-05.
 
 ---
 
