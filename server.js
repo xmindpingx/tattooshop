@@ -346,7 +346,7 @@ function cleanup() {
     const stale = job.started && (now - job.started > 6 * 3600e3);
     if (terminal || stale) genJobs.delete(gid);
   }
-  for (const [id, job] of aiJobs) { if (job.status !== 'pending') aiJobs.delete(id); } // prune completed ai analyses
+  for (const [id, job] of aiJobs) { if (job.status !== 'pending' && !fs.existsSync(jobDir(id))) aiJobs.delete(id); } // prune completed ai analyses only when job dir is gone
 }
 setInterval(cleanup, 20 * 60 * 1000); cleanup();
 
