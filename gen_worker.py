@@ -164,13 +164,13 @@ def cmd_generate_batch(dir, outs, prompt, negative, scale=0.75, steps=28, guidan
             img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
                     guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
         except torch.OutOfMemoryError:
-            # Shrink resolution ~25% and retry once
+            # Shrink resolution ~25% and retry — also update ctl/tw/th so remaining candidates use reduced size
             torch.cuda.empty_cache()
             tw2, th2 = max(64, round(tw * 0.75 / 64) * 64), max(64, round(th * 0.75 / 64) * 64)
-            print(f'[gen] OOM at {tw}x{th}, retrying at {tw2}x{th2}', flush=True)
-            ctl2 = ctl.resize((tw2, th2))
+            print(f'[gen] OOM at {tw}x{th}, retrying at {tw2}x{th2} (all remaining candidates will use reduced size)', flush=True)
+            ctl, tw, th = ctl.resize((tw2, th2)), tw2, th2                 # permanent downscale for this batch
             gen = torch.Generator('cuda').manual_seed(int(sd))
-            img = p(prompt=prompt, negative_prompt=negative, image=ctl2, width=tw2, height=th2, num_inference_steps=int(steps),
+            img = p(prompt=prompt, negative_prompt=negative, image=ctl, width=tw, height=th, num_inference_steps=int(steps),
                     guidance_scale=float(guidance), controlnet_conditioning_scale=float(scale), control_guidance_end=0.9, generator=gen).images[0]
         if whiten:
             img = whiten_bg(img)
