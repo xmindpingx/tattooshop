@@ -523,7 +523,7 @@ def cmd_render(dir, outbase, detail=65, weightMm=0.4, cleanup=30, background=0, 
         if n == 1:
             cv2.circle(canvas8, tuple(int(v) for v in ((pts[0] + 0.5) * f)), max(1, round(th / 2)), 255, -1, cv2.LINE_AA)
         else:
-            cv2.polylines(canvas8, [q], True, 255, max(1, round(th)), cv2.LINE_AA, SH)
+            cv2.polylines(canvas8, [q], False, 255, max(1, round(th)), cv2.LINE_AA, SH)
     if solid.any():                                                        # solid fills, smooth edges
         sc = cv2.GaussianBlur(cv2.resize(solid.astype(np.float32), (Wf, Hf), interpolation=cv2.INTER_LINEAR), (0, 0), max(1.0, f * 1.2))
         canvas8 = np.maximum(canvas8, ((sc > 0.5) * 255).astype(np.uint8))
@@ -624,7 +624,7 @@ def cmd_flash(gen, outbase, sizeIn=5.0, black=90, shade='none', mirror=False, sp
                             cv2.circle(layer, (x, y), int(round(pen * (0.45 + 0.55 * min(1.0, dark)))), 1, -1)
             else:
                 yy, xx = np.mgrid[0:gs.shape[0], 0:gs.shape[1]]
-                layer = (((xx + yy) % (sp * 1.4)) < pen * 0.8).astype(np.uint8)
+                layer = (((xx + yy) % max(1, round(sp * 1.4))) < pen * 0.8).astype(np.uint8)
             ink = ink | (layer & mid)
     ink = cv2.GaussianBlur(ink.astype(np.float32), (0, 0), 0.8) > 0.5                          # smooth stair-steps
     rows, cols = np.where(ink.any(1))[0], np.where(ink.any(0))[0]

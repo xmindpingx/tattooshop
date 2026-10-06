@@ -6,12 +6,11 @@ const S = {
   flipH:false, flipV:false,
   style:'', textMode:'outline', selectedFont:'Bebas Neue',
   activeChips:new Set(), activeAiChips:new Set(),
-  job:null, aiModel:'sdxl', aiLora:'tattoo', aiLoraW:0.65,
+  jobId:null, aiModel:'sdxl', aiLora:'tattoo', aiLoraW:0.65,
   aiCfg:7.5, aiCnScale:0.85, aiSteps:28, aiCount:2, aiGoal:'stencil',
-  sizeIn:5, nolistOn:true, hasStencil:false, hasTextJob:false, currentBlob:null,
-  crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
-  detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20, light:0,
-  cnScale:0.75, cfg:7, steps:30, loraW:0.8, candidates:2
+  sizeIn:5, nolistOn:true, hasStencil:false, hasTextJob:false, currentBlob:null, lastServerPng:null, lastServerPdf:null,
+  _rendering:false, crArea:'arm', crScale:100, crOpacity:80, genJobId:null,
+  detail:80, cleanup:20, smooth:10, texture:0, skin:5, fills:0, shadows:0, stubble:20, light:0
 };
 
 /* ── Font list ─────────────────────────────────────────────────────── */

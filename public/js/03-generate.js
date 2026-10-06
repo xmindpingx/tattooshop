@@ -218,7 +218,24 @@ function doExport(type) {
 }
 
 function doFlash() {
-  showToast('Flash requires an AI-generated image. Run AI Redraw first.', 3500);
+  if (S._rendering) { showToast('Already rendering — wait for it to finish.', 2500); return; }
+  if (!S.jobId) { showToast('Upload a photo first.', 2500); return; }
+  // Derive genId from the current blob URL: /api/gen/image/<jobId>/<genId>
+  const m = S.currentBlob && S.currentBlob.match(/\/api\/gen\/image\/[^/]+\/([0-9a-f]{8}(?:_\d+)?)$/);
+  if (!m) { showToast('Flash Stencil requires an AI-generated image — run AI Redraw first, then select a candidate.', 3500); return; }
+  const genId = m[1];
+  S._rendering = true;
+  showOverlay('Converting flash to stencil…', 20);
+  fetch('/api/flash', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ jobId: S.jobId, genId, sizeIn: S.sizeIn }) })
+  .then(r => r.json())
+  .then(d => {
+    S._rendering = false; hideOverlay();
+    const url = d.files?.png || d.url;
+    if (url) { showStencil(url); if (d.files?.pdf) S.lastServerPdf = d.files.pdf; }
+    else showToast(d.error || 'Flash conversion failed', 4000);
+  })
+  .catch(e => { S._rendering = false; hideOverlay(); showToast('Failed: ' + e.message, 4000); });
 }
 
 function doDestubble() {
