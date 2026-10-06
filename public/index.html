@@ -198,12 +198,12 @@
       </div>
 
       <div id="photo-controls" style="display:none;margin-top:12px">
-        <div class="inner-nav">
+        <div class="inner-nav" data-scope="photo">
           <button data-inner="adjust" class="active" onclick="setInner('photo','adjust')">✂ Crop & Adjust</button>
           <button data-inner="subject" onclick="setInner('photo','subject')">🎯 Subject</button>
         </div>
 
-        <div class="inner-pane active" data-inner="photo-adjust">
+        <div class="inner-pane active" data-inner="adjust" data-scope="photo">
           <div class="row">
             <label style="font-size:.75rem;color:var(--muted)">Aspect Ratio</label>
             <select id="sel-aspect" onchange="onAspectChange()">
@@ -237,7 +237,7 @@
           </div>
         </div>
 
-        <div class="inner-pane" data-inner="photo-subject">
+        <div class="inner-pane" data-inner="subject" data-scope="photo">
           <p style="color:var(--muted);font-size:.8rem;margin-bottom:10px">Draw a selection box around the tattoo subject to crop and isolate it.</p>
           <div class="row">
             <button class="chip" id="btn-select-mode" onclick="setSelectMode('box')">📦 Box Select</button>
